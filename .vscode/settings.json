@@ -1,0 +1,15 @@
+{
+    "sqltools.connections": [
+        {
+            "ssh": "Disabled",
+            "previewLimit": 100,
+            "server": "localhost",
+            "port": 5432,
+            "driver": "PostgreSQL",
+            "name": "tucson crime",
+            "database": "tucson_crime",
+            "username": "tom",
+            "password": ""
+        }
+    ]
+}
