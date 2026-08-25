@@ -1,0 +1,34 @@
+name: Ingest bike crime data
+
+# Pulls the latest Tucson bike-theft incidents into the (Supabase) database and
+# refreshes the public materialized views. Runs daily and can be triggered by hand.
+on:
+  schedule:
+    - cron: "0 12 * * *"      # 12:00 UTC = 05:00 America/Phoenix (year-round, no DST)
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Pull mode"
+        type: choice
+        default: refresh
+        options: [refresh, backfill]
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r requirements.txt
+
+      - name: Pull incidents + refresh marts
+        env:
+          # Set this repo secret to your Supabase **Session pooler** connection string
+          # (Project → Settings → Database → Connection string → Session pooler).
+          # The direct db.<ref>.supabase.co host is IPv6-only and won't work on GitHub runners.
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python pull_tpd_incidents.py ${{ github.event.inputs.mode || 'refresh' }}
