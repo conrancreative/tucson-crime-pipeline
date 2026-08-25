@@ -125,6 +125,29 @@ def load_layer(cur, conn, layer, label):
     return loaded
 
 
+def refresh_marts(conn):
+    """Re-bake the public materialized views so new data becomes visible.
+    Tries CONCURRENTLY (no read lock); falls back to a plain refresh. Skips
+    silently if the marts don't exist yet (e.g. before 04_reporting.sql is run)."""
+    for mv in ("mart_bike_crimes", "mart_bike_stats"):
+        cur = conn.cursor()
+        try:
+            cur.execute(f"refresh materialized view concurrently {mv}")
+            conn.commit()
+            print(f"  refreshed {mv} (concurrently)")
+        except psycopg2.Error:
+            conn.rollback()
+            try:
+                cur.execute(f"refresh materialized view {mv}")
+                conn.commit()
+                print(f"  refreshed {mv}")
+            except psycopg2.Error as e:
+                conn.rollback()
+                print(f"  skipped {mv}: {str(e).strip()}")
+        finally:
+            cur.close()
+
+
 def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else "refresh"
 
@@ -143,8 +166,11 @@ def main():
     for layer, label in targets:
         print(f"Pulling layer {layer} ({label}) ...")
         total += load_layer(cur, conn, layer, label)
-
     cur.close()
+
+    print("Refreshing marts ...")
+    refresh_marts(conn)
+
     conn.close()
     print(f"Done ({mode}). Rows processed: {total}")
 
