@@ -1,0 +1,17 @@
+# Secrets / environment
+.env
+.env.*
+!.env.example
+
+# Python virtualenv & caches
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local data exports (can be large; regenerate from the pipeline)
+sql/*.csv
+
+# OS / editor
+.DS_Store
+*.swp
