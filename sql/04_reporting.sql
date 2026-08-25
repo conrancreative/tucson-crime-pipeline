@@ -20,6 +20,7 @@ create materialized view mart_bike_crimes as
 select
     incident_id                            as id,
     occurred_at,
+    occurred_at_az,
     year,
     extract(month from occurred_at)::int   as month,
     trim(to_char(occurred_at, 'Dy'))       as day_of_week,
@@ -33,7 +34,9 @@ select
     case_status,
     offense_description,
     lat,
-    lon
+    lon,
+    pulled_at,                             -- when we last refreshed this row
+    pulled_at_az
 from int_incidents
 where is_bicycle
   and lat is not null and lon is not null      -- map needs a point
