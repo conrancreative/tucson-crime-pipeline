@@ -23,6 +23,14 @@ with a as (
         payload->'geometry'                                  as geom,
         pulled_at
     from raw_tpd_incidents
+),
+b as (
+    -- resolve the timestamps once so both UTC and Arizona-local forms reuse them
+    select
+        a.*,
+        to_timestamp((attrs->>'DATETIME_OCCU')::bigint / 1000.0)          as occurred_at,
+        to_timestamp(nullif(attrs->>'DATETIME_REPT','')::bigint / 1000.0) as reported_at
+    from a
 )
 select
     inci_id                                                  as incident_id,
@@ -33,14 +41,15 @@ select
 
     -- when: DATETIME_OCCU is epoch-ms and populated on every record. Arizona has
     -- no DST, so treating it as UTC keeps the wall-clock date/time correct.
-    to_timestamp((attrs->>'DATETIME_OCCU')::bigint / 1000.0) as occurred_at,
-    extract(year from
-        to_timestamp((attrs->>'DATETIME_OCCU')::bigint / 1000.0)
-    )::int                                                  as year,
+    -- *_az columns render the same instant as Arizona local wall-clock time.
+    occurred_at,
+    (occurred_at at time zone 'America/Phoenix')            as occurred_at_az,
+    extract(year from occurred_at)::int                     as year,
     attrs->>'TIME_OCCU'                                      as time_occur,
 
     -- when reported (95% filled) -- pair with occurred_at for reporting lag
-    to_timestamp(nullif(attrs->>'DATETIME_REPT','')::bigint / 1000.0) as reported_at,
+    reported_at,
+    (reported_at at time zone 'America/Phoenix')            as reported_at_az,
 
     -- where (administrative)
     coalesce(attrs->>'DIVISION', attrs->>'emdivision')      as division,
@@ -64,5 +73,8 @@ select
     (attrs->>'OFFENSE' = '0606')                            as is_bicycle,
 
     source_layer,
-    pulled_at
-from a;
+
+    -- when we last pulled/refreshed this row (updated on every upsert)
+    pulled_at,
+    (pulled_at at time zone 'America/Phoenix')              as pulled_at_az
+from b;
