@@ -22,6 +22,7 @@ import time
 import math
 import requests
 import psycopg2
+from psycopg2.extras import execute_values
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -86,6 +87,16 @@ def fetch_page(layer, offset):
     return data.get("features", []), data.get("exceededTransferLimit", False)
 
 
+UPSERT_SQL = """
+    INSERT INTO raw_tpd_incidents (inci_id, source_layer, payload)
+    VALUES %s
+    ON CONFLICT (inci_id) DO UPDATE SET
+        source_layer = EXCLUDED.source_layer,
+        payload      = EXCLUDED.payload,
+        pulled_at    = now()
+"""
+
+
 def load_layer(cur, conn, layer, label):
     offset = 0
     loaded = 0
@@ -94,26 +105,23 @@ def load_layer(cur, conn, layer, label):
         if not features:
             break
 
+        # Build the whole page, then upsert it in ONE round-trip (execute_values).
+        # Per-row inserts are fine locally but crawl over a remote pooler.
+        # Dedupe by inci_id within the page (some layers repeat an id) -- a single
+        # ON CONFLICT statement can't update the same row twice; keep the last.
+        page = {}
         for feature in features:
-            attrs = feature["attributes"]
-            inci_id = attrs.get("INCI_ID")
+            inci_id = feature["attributes"].get("INCI_ID")
             if not inci_id:
                 continue
             feature = clean_geometry(feature)
-            cur.execute(
-                """
-                INSERT INTO raw_tpd_incidents (inci_id, source_layer, payload)
-                VALUES (%s, %s, %s::jsonb)
-                ON CONFLICT (inci_id)
-                DO UPDATE SET
-                    source_layer = EXCLUDED.source_layer,
-                    payload      = EXCLUDED.payload,
-                    pulled_at    = now()
-                """,
-                (str(inci_id), label, json.dumps(feature)),
-            )
+            page[str(inci_id)] = (str(inci_id), label, json.dumps(feature))
 
-        conn.commit()
+        if page:
+            execute_values(cur, UPSERT_SQL, list(page.values()),
+                           template="(%s, %s, %s::jsonb)", page_size=1000)
+            conn.commit()
+
         loaded += len(features)
         offset += PAGE_SIZE
         print(f"  [{label}] loaded {loaded}")
