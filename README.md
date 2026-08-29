@@ -103,6 +103,28 @@ reconcile case-status changes and corrections on records older than 45 days.
 
 ---
 
+## Schema / data dictionary
+
+The pipeline is four objects, chained raw → transform → reporting:
+
+```
+ArcGIS ──► raw_tpd_incidents ──► int_incidents ──►  mart_bike_crimes   ──► map (dots)
+ puller       TABLE                VIEW              MATERIALIZED VIEW
+            jsonb landing       live, 0 bytes    └►  mart_bike_stats    ──► trend charts
+                                                     MATERIALIZED VIEW
+```
+
+| Object | Type | Role |
+|---|---|---|
+| `raw_tpd_incidents` | table | Landing zone. One row per theft, keyed on `inci_id`, full ArcGIS feature as `jsonb`. The puller writes here; source of truth. |
+| `int_incidents` | view | Cleaner. Live query over raw — flattens jsonb into typed columns (`occurred_at`, `lat`/`lon`, `ward`, `parcel_group`, `*_az`, `is_bicycle`). Stores nothing; always current. |
+| `mart_bike_crimes` | materialized view | Map feed. Stored snapshot from `int_incidents`, bike-only + geocoded, one row per point. What the site's map reads. |
+| `mart_bike_stats` | materialized view | Trend feed. Pre-aggregated counts by year/month/ward for charts. |
+
+How they interact: the puller **writes** `raw_tpd_incidents`; `int_incidents` reflects it **automatically** (live view); the two marts are **stored snapshots** that only update when `refresh materialized view` runs — which the puller does at the end of every pull. So the cycle is **write raw → refresh marts**, with the view carrying data through in between.
+
+---
+
 ## Data source notes
 
 - Source: Tucson `PublicMaps/OpenData_PublicSafety/MapServer` spatial incident layers
@@ -117,12 +139,16 @@ reconcile case-status changes and corrections on records older than 45 days.
 
 ```
 pull_tpd_incidents.py   # ingestion (backfill | refresh)
+apply_sql.sh            # apply .sql files to .env's DATABASE_URL
 sql/
-  01_raw.sql            # landing tables
+  01_raw.sql            # landing table (raw_tpd_incidents)
   03_transform.sql      # int_incidents view
   04_reporting.sql      # mart_bike_crimes, mart_bike_stats
+  05_api_grants.sql     # read-only API grants (Supabase)
   inspect.sql           # per-layer sanity report
   scratch.sql           # ad-hoc query playground
+.github/workflows/
+  ingest.yml            # daily cron (refresh) + manual dispatch
 requirements.txt
 .env                    # DB connection (gitignored)
 ```
