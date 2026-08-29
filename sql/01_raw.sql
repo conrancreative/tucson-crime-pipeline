@@ -11,18 +11,3 @@ create table if not exists raw_tpd_incidents (
     payload     jsonb not null,              -- full feature: attributes + geometry
     pulled_at   timestamptz default now()
 );
-
--- (existing tables, kept for reference / other features)
--- raw_tpd_reported_crimes    : non-spatial dashboard table (no geometry) - legacy
--- raw_tpd_calls_last_45_days : calls-for-service, 45-day rolling, has geometry
-create table if not exists raw_tpd_reported_crimes (
-    esri_oid  bigint primary key,
-    payload   jsonb not null,
-    pulled_at timestamptz default now()
-);
-
-create table if not exists raw_tpd_calls_last_45_days (
-    objectid  bigint primary key,
-    payload   jsonb not null,
-    pulled_at timestamptz default now()
-);
