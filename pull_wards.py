@@ -24,6 +24,14 @@ WARDS_URL = (
     "PimaMaps::wards-city-of-tucson.geojson"
 )
 
+# The county source is authoritative for boundaries but its council roster can be
+# stale. Manual corrections applied AFTER every load so they survive re-runs and
+# fresh rebuilds. Update these when a council seat changes.
+OVERRIDES = {
+    "6": {"council_member": "Miranda Schubert"},   # source lists a prior member
+}
+_OVERRIDE_COLS = {"council_member", "office_address", "phone", "url"}  # allowed to override
+
 UPSERT_SQL = """
     insert into ref_wards
         (ward, council_member, office_address, phone, url, city, zipcode, geom, pulled_at)
@@ -72,9 +80,20 @@ def main():
         loaded += 1
 
     conn.commit()
+
+    # apply manual corrections over the (sometimes stale) source values
+    corrected = 0
+    for ward, fields in OVERRIDES.items():
+        for col, val in fields.items():
+            if col not in _OVERRIDE_COLS:
+                continue
+            cur.execute(f"update ref_wards set {col} = %s where ward = %s", (val, ward))
+            corrected += cur.rowcount
+    conn.commit()
+
     cur.close()
     conn.close()
-    print(f"Loaded {loaded} wards into ref_wards")
+    print(f"Loaded {loaded} wards into ref_wards ({corrected} override(s) applied)")
 
 
 if __name__ == "__main__":
