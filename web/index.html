@@ -20,8 +20,12 @@
       --accent: #e8833a;      /* the only real color: theft dots */
     }
     * { box-sizing: border-box; }
-    html, body { height: 100%; margin: 0; }
+    html, body { margin: 0; }
     body {
+      height: 100vh;            /* fallback */
+      height: 100dvh;           /* dynamic viewport height — tracks the mobile browser toolbar
+                                   so the page loads exactly viewport-tall (header stays visible) */
+      overflow: hidden;         /* app shell: the page itself never scrolls; only the table view does */
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
       color: var(--ink); background: var(--bg);
       display: flex; flex-direction: column;
