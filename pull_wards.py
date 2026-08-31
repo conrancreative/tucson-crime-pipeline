@@ -28,7 +28,8 @@ WARDS_URL = (
 # stale. Manual corrections applied AFTER every load so they survive re-runs and
 # fresh rebuilds. Update these when a council seat changes.
 OVERRIDES = {
-    "6": {"council_member": "Miranda Schubert"},   # source lists a prior member
+    "6": {"council_member": "Miranda Schubert"},
+    "5": {"council_member": "Selina Barajas"},   # source lists a prior member
 }
 _OVERRIDE_COLS = {"council_member", "office_address", "phone", "url"}  # allowed to override
 
