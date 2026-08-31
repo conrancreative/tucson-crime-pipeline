@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tucson Bike Theft Map — 2026</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <style>
+    :root {
+      --bg: #ffffff;
+      --panel: #ffffff;
+      --ink: #1a1a1a;
+      --ink-2: #6b7280;
+      --line: #e5e7eb;
+      --accent: #e8833a;      /* the only real color: theft dots */
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      color: var(--ink); background: var(--bg);
+      display: flex; flex-direction: column;
+    }
+
+    header {
+      padding: 12px 20px; border-bottom: 1px solid var(--line);
+      display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+    }
+    header h1 { font-size: 16px; font-weight: 700; margin: 0; letter-spacing: -.01em; }
+    header h1 .dot { color: var(--accent); }
+    nav { display: flex; gap: 4px; }
+    .tab {
+      font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+      background: none; border: 0; color: var(--ink-2);
+      padding: 6px 12px; border-radius: 7px;
+    }
+    .tab.on { background: #f3f4f6; color: var(--ink); }
+    .subbar {
+      display: flex; justify-content: center; align-items: center; gap: 14px;
+      padding: 10px 20px; border-bottom: 1px solid var(--line); flex-wrap: wrap;
+    }
+    .meta { color: var(--ink-2); font-size: 13px; }
+    .meta b { color: var(--ink); font-variant-numeric: tabular-nums; }
+    #reset {
+      font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+      background: var(--ink); color: #fff; border: 0; border-radius: 999px;
+      padding: 5px 11px; display: inline-flex; align-items: center; gap: 7px;
+    }
+    #reset .x { opacity: .8; }
+
+    .view { flex: 1; min-height: 0; display: none; }
+    .view.active { display: flex; }
+    #view-map { position: relative; }
+    #map { flex: 1; background: #f4f4f4; }
+
+    /* map: desaturate the basemap so only the dots/wards carry color.
+       Tiles live in .leaflet-tile-pane; markers & ward polygons are in other
+       panes, so they stay in color. */
+    .leaflet-tile-pane { filter: grayscale(1) brightness(1.06) contrast(0.9); }
+    .leaflet-container { background: #f4f4f4; }
+    .ward-label {
+      background: none; border: 0; box-shadow: none;
+      font-size: 45px; font-weight: 800; line-height: 1; pointer-events: none;
+      text-shadow: 0 0 4px #fff, 0 0 4px #fff;
+    }
+    .leaflet-popup-content { font-size: 13px; line-height: 1.5; margin: 10px 12px; }
+    .leaflet-popup-content .d { font-weight: 700; }
+    .leaflet-popup-content .s { color: var(--ink-2); }
+
+    #status {
+      position: absolute; z-index: 500; top: 14px; left: 50%; transform: translateX(-50%);
+      background: #fff; border: 1px solid var(--line); box-shadow: 0 2px 12px rgba(0,0,0,.08);
+      padding: 8px 14px; border-radius: 8px; font-size: 13px; color: var(--ink-2);
+    }
+    #status.err { border-color: #e0b4a4; color: #a23f22; }
+
+    /* table */
+    #view-table { overflow: auto; }
+    #view-table.active { display: block; }   /* block, not flex — else tall table spreads rows */
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead th {
+      position: sticky; top: 0; background: #fff; text-align: left;
+      font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-2);
+      font-weight: 600; padding: 10px 20px; border-bottom: 1px solid var(--line);
+    }
+    tbody td { padding: 10px 20px; border-bottom: 1px solid #f1f2f4; white-space: nowrap; }
+    tbody td.addr { white-space: normal; }
+    tbody tr:hover { background: #fafafa; }
+    .ward-pill {
+      display: inline-block; min-width: 22px; text-align: center;
+      background: #f3f4f6; border-radius: 5px; padding: 1px 6px; font-weight: 600; font-size: 12px;
+    }
+    td .dot { color: var(--accent); }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><span class="dot">●</span> Tucson Bike Thefts</h1>
+    <nav>
+      <button class="tab on" data-view="map">Map</button>
+      <button class="tab" data-view="table">Table</button>
+    </nav>
+  </header>
+
+  <div class="subbar">
+    <button id="reset" style="display:none"><span id="reset-label"></span> <span class="x">✕</span></button>
+    <div class="meta"><b id="count">—</b> <span id="scope">in 2026</span> · through <b id="through">—</b></div>
+  </div>
+
+  <section id="view-map" class="view active">
+    <div id="map"></div>
+    <div id="status">Loading…</div>
+  </section>
+
+  <section id="view-table" class="view">
+    <table>
+      <thead><tr><th>Date</th><th>Address</th><th>Ward</th><th>Neighborhood</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </section>
+
+  <script>
+    // ---- config -------------------------------------------------------------
+    const SUPABASE_URL = "https://zcbcweteictqafpipkuk.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpjYmN3ZXRlaWN0cWFmcGlwa3VrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2NjU0MTAsImV4cCI6MjEwMzI0MTQxMH0.RaxkBfq54wjWnkjXvHe2uWFrPRFDGa0liMrJhh2B7Rg";
+    const YEAR = 2026;
+    // -------------------------------------------------------------------------
+
+    const apiHeaders = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` };
+
+    // grayscale basemap — only the markers carry color
+    const map = L.map("map", { zoomControl: true }).setView([32.221, -110.955], 12);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    // ward colors — shared by the map overlays AND the table key for consistency
+    const WARD_COLORS = { "1": "#4E79A7", "2": "#59A14F", "3": "#8158B0", "4": "#C94F9C", "5": "#76B7B2", "6": "#E24A43" };
+    const wardColor = w => WARD_COLORS[w] || "#9ca3af";
+
+    // wards go in a lower pane so the theft dots sit on top and stay clickable
+    map.createPane("wards");
+    map.getPane("wards").style.zIndex = 350;        // ward fills, below the overlay pane (400)
+    map.createPane("wardlabels");
+    map.getPane("wardlabels").style.zIndex = 360;   // big ward numbers, above fills but below dots
+
+    // ---- ward selection: click a ward → zoom in + filter to its dots --------
+    const crimesLayer = L.layerGroup().addTo(map);
+    const crimeMarkers = [];      // { marker, ward }
+    let allPts = [];
+    let selectedWard = null;
+
+    function applyMapFilter(ward) {
+      crimesLayer.clearLayers();
+      crimeMarkers.forEach(m => { if (!ward || m.ward === ward) crimesLayer.addLayer(m.marker); });
+    }
+    function applyTableFilter(ward) {
+      document.querySelectorAll("#rows tr").forEach(tr => {
+        tr.style.display = (!ward || tr.dataset.ward === ward) ? "" : "none";
+      });
+    }
+    function updateHeader(ward) {
+      document.getElementById("count").textContent =
+        ward ? crimeMarkers.filter(m => m.ward === ward).length : crimeMarkers.length;
+      document.getElementById("scope").textContent = ward ? `in Ward ${ward}` : "in 2026";
+      document.getElementById("reset").style.display = ward ? "inline-flex" : "none";
+    }
+    function selectWard(ward, member, layer) {
+      if (selectedWard === ward) { resetSelection(); return; }   // click again to deselect
+      selectedWard = ward;
+      const b = layer.getBounds();
+      map.setView(b.getCenter(), Math.min(map.getBoundsZoom(b) + 1, 18));   // fit, then a step closer
+      applyMapFilter(ward); applyTableFilter(ward); updateHeader(ward);
+      document.getElementById("reset-label").textContent = `Ward ${ward}${member ? " · " + member : ""}`;
+      document.getElementById("reset").style.background = wardColor(ward);  // pill matches the ward
+    }
+    function resetSelection() {
+      selectedWard = null;
+      applyMapFilter(null); applyTableFilter(null); updateHeader(null);
+      if (allPts.length) map.fitBounds(allPts, { padding: [40, 40] });
+    }
+    document.getElementById("reset").onclick = resetSelection;
+
+    // ---- tabs ---------------------------------------------------------------
+    function show(view) {
+      document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === "view-" + view));
+      document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.view === view));
+      if (view === "map") setTimeout(() => map.invalidateSize(), 0);
+    }
+    document.querySelectorAll(".tab").forEach(t => t.onclick = () => show(t.dataset.view));
+
+    const statusEl = document.getElementById("status");
+    const setStatus = (m, err) => {
+      statusEl.style.display = m ? "block" : "none";
+      if (m) { statusEl.textContent = m; statusEl.classList.toggle("err", !!err); }
+    };
+    const esc = s => (s == null ? "" : String(s)).replace(/[&<>"]/g,
+      c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    const fmtDate = az => {
+      if (!az) return "Unknown";
+      const d = new Date(az.replace(" ", "T"));
+      return isNaN(d) ? az : d.toLocaleString("en-US",
+        { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+    };
+
+    // ---- ward overlays (color-coded, translucent) ---------------------------
+    async function loadWards() {
+      try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/api_wards?select=ward,council_member,geometry`,
+          { headers: apiHeaders });
+        if (!res.ok) return;
+        const wards = await res.json();
+        const fc = {
+          type: "FeatureCollection",
+          features: wards.map(w => ({
+            type: "Feature",
+            properties: { ward: w.ward, member: w.council_member },
+            geometry: w.geometry
+          }))
+        };
+        L.geoJSON(fc, {
+          pane: "wards",
+          style: f => ({ color: wardColor(f.properties.ward), weight: 1.5, opacity: 0.85,
+                         fillColor: wardColor(f.properties.ward), fillOpacity: 0.20 }),
+          onEachFeature: (f, layer) => {
+            layer.bindTooltip(`<span style="color:${wardColor(f.properties.ward)}">${esc(f.properties.ward)}</span>`,
+              { permanent: true, direction: "center", className: "ward-label", pane: "wardlabels", opacity: 0.5 });
+            layer.on("click", () => selectWard(f.properties.ward, f.properties.member, layer));
+          }
+        }).addTo(map);
+      } catch (_) { /* wards are optional decoration */ }
+    }
+
+    // ---- crimes -------------------------------------------------------------
+    async function loadCrimes() {
+      const params = new URLSearchParams({
+        select: "id,occurred_at_az,ward,neighborhood,address,lat,lon",
+        year: `eq.${YEAR}`, order: "occurred_at.desc"
+      });
+      let rows;
+      try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/mart_bike_crimes?${params}`, { headers: apiHeaders });
+        if (!res.ok) throw new Error(`API ${res.status}: ${await res.text()}`);
+        rows = await res.json();
+      } catch (e) {
+        setStatus("Couldn't load data — " + e.message, true);
+        return;
+      }
+
+      const pts = [];
+      const tbody = document.getElementById("rows");
+      let newest = null;
+      for (const r of rows) {
+        if (!newest || r.occurred_at_az > newest) newest = r.occurred_at_az;
+
+        if (r.lat != null && r.lon != null) {
+          const marker = L.circleMarker([r.lat, r.lon], {
+            radius: 6, color: "#fff", weight: 1.5, fillColor: "#e8833a", fillOpacity: 0.9
+          }).bindPopup(
+            `<div class="d">${fmtDate(r.occurred_at_az)}</div>` +
+            `<div>${esc(r.address) || "Address withheld"}</div>` +
+            `<div class="s">Ward ${esc(r.ward) || "?"}${r.neighborhood ? " · " + esc(r.neighborhood) : ""}</div>`
+          );
+          crimeMarkers.push({ marker, ward: r.ward });
+          pts.push([r.lat, r.lon]);
+        }
+
+        const tr = document.createElement("tr");
+        tr.dataset.ward = r.ward || "";
+        tr.innerHTML =
+          `<td>${fmtDate(r.occurred_at_az)}</td>` +
+          `<td class="addr">${esc(r.address) || "—"}</td>` +
+          `<td><span class="ward-pill" style="background:${wardColor(r.ward)};color:#fff">${esc(r.ward) || "?"}</span></td>` +
+          `<td>${esc(r.neighborhood) || "—"}</td>`;
+        tbody.appendChild(tr);
+      }
+
+      allPts = pts;
+      applyMapFilter(null);            // add all markers via the filter layer
+      updateHeader(null);
+      document.getElementById("through").textContent = newest ? fmtDate(newest) : "—";
+      if (pts.length) map.fitBounds(pts, { padding: [40, 40] });
+      setStatus(null);
+    }
+
+    loadWards();
+    loadCrimes();
+  </script>
+</body>
+</html>
