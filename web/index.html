@@ -21,11 +21,14 @@
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; }
+    /* lock the window so mobile browsers can't scroll the header off-screen
+       (e.g. when Leaflet focuses the map on load and iOS scrolls it into view) */
+    html { height: 100%; overflow: hidden; overscroll-behavior: none; }
     body {
-      height: 100vh;            /* fallback */
-      height: 100dvh;           /* dynamic viewport height — tracks the mobile browser toolbar
-                                   so the page loads exactly viewport-tall (header stays visible) */
-      overflow: hidden;         /* app shell: the page itself never scrolls; only the table view does */
+      position: fixed; top: 0; left: 0; right: 0;   /* pin the shell to the viewport top */
+      height: 100vh;                                 /* fallback */
+      height: 100dvh;                                /* dynamic viewport height — tracks the toolbar */
+      overflow: hidden; overscroll-behavior: none;
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
       color: var(--ink); background: var(--bg);
       display: flex; flex-direction: column;
@@ -327,6 +330,12 @@
 
     loadWards();
     loadCrimes();
+
+    // belt-and-suspenders: if a mobile browser scrolls the map into view on load,
+    // snap back to the top so the header stays visible
+    const snapTop = () => window.scrollTo(0, 0);
+    window.addEventListener("load", snapTop);
+    setTimeout(snapTop, 400);
   </script>
 </body>
 </html>
