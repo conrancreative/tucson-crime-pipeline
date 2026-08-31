@@ -97,6 +97,24 @@
     }
     td .dot { color: var(--accent); }
     a { color: var(--accent); }
+
+    /* ---- mobile ---- */
+    @media (max-width: 640px) {
+      header { gap: 10px; padding: 10px 14px; }
+      header h1 { font-size: 15px; }
+      .subbar { padding: 8px 14px; gap: 10px; }
+      .tab { padding: 8px 14px; }               /* larger tap targets */
+
+      /* table → stacked cards (no horizontal scroll) */
+      #view-table thead { display: none; }
+      #view-table table, #view-table tbody, #view-table tr, #view-table td { display: block; }
+      #view-table tr { padding: 11px 16px; border-bottom: 1px solid var(--line); position: relative; }
+      #view-table td { padding: 0; border: 0; white-space: normal; }
+      #view-table td:nth-child(1) { font-weight: 600; padding-right: 42px; }   /* date */
+      #view-table td:nth-child(2) { color: var(--ink); margin-top: 1px; }      /* address */
+      #view-table td:nth-child(3) { position: absolute; top: 11px; right: 16px; }  /* ward pill */
+      #view-table td:nth-child(4) { color: var(--ink-2); font-size: 12.5px; margin-top: 1px; }  /* neighborhood */
+    }
   </style>
 </head>
 <body>
@@ -110,7 +128,7 @@
 
   <div class="subbar">
     <button id="reset" style="display:none"><span id="reset-label"></span> <span class="x">✕</span></button>
-    <div class="meta"><b id="count">—</b> <span id="scope">in 2026</span> · through <b id="through">—</b></div>
+    <div class="meta"><b id="count">—</b> <span id="scope">in 2026</span> · from <b id="from">—</b> through <b id="through">—</b></div>
   </div>
 
   <section id="view-map" class="view active">
@@ -133,6 +151,11 @@
     // -------------------------------------------------------------------------
 
     const apiHeaders = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` };
+    // bigger, easier-to-tap dots on phones (20px diameter, slightly translucent so
+    // overlaps read better) vs other screens (16px)
+    const IS_MOBILE = window.matchMedia("(max-width: 640px)").matches;
+    const DOT_RADIUS = IS_MOBILE ? 10 : 8;
+    const DOT_FILL = IS_MOBILE ? 0.7 : 0.9;
 
     // grayscale basemap — only the markers carry color
     const map = L.map("map", { zoomControl: true }).setView([32.221, -110.955], 12);
@@ -209,6 +232,12 @@
       return isNaN(d) ? az : d.toLocaleString("en-US",
         { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
     };
+    const fmtDay = (az, withYear = true) => {
+      if (!az) return "—";
+      const d = new Date(az.replace(" ", "T"));
+      return isNaN(d) ? az : d.toLocaleDateString("en-US",
+        withYear ? { month: "short", day: "numeric", year: "numeric" } : { month: "short", day: "numeric" });
+    };
 
     // ---- ward overlays (color-coded, translucent) ---------------------------
     async function loadWards() {
@@ -256,13 +285,14 @@
 
       const pts = [];
       const tbody = document.getElementById("rows");
-      let newest = null;
+      let newest = null, oldest = null;
       for (const r of rows) {
-        if (!newest || r.occurred_at_az > newest) newest = r.occurred_at_az;
+        const t = r.occurred_at_az;
+        if (t) { if (!newest || t > newest) newest = t; if (!oldest || t < oldest) oldest = t; }
 
         if (r.lat != null && r.lon != null) {
           const marker = L.circleMarker([r.lat, r.lon], {
-            radius: 6, color: "#fff", weight: 1.5, fillColor: "#e8833a", fillOpacity: 0.9
+            radius: DOT_RADIUS, color: "#fff", weight: 1.5, fillColor: "#e8833a", fillOpacity: DOT_FILL
           }).bindPopup(
             `<div class="d">${fmtDate(r.occurred_at_az)}</div>` +
             `<div>${esc(r.address) || "Address withheld"}</div>` +
@@ -285,7 +315,8 @@
       allPts = pts;
       applyMapFilter(null);            // add all markers via the filter layer
       updateHeader(null);
-      document.getElementById("through").textContent = newest ? fmtDate(newest) : "—";
+      document.getElementById("from").textContent = fmtDay(oldest, false);
+      document.getElementById("through").textContent = fmtDay(newest, true);
       if (pts.length) map.fitBounds(pts, { padding: [40, 40] });
       setStatus(null);
     }
