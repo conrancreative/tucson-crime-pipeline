@@ -20,15 +20,16 @@
       --accent: #e8833a;      /* the only real color: theft dots */
     }
     * { box-sizing: border-box; }
-    html, body { margin: 0; }
-    /* lock the window so mobile browsers can't scroll the header off-screen
-       (e.g. when Leaflet focuses the map on load and iOS scrolls it into view) */
-    html { height: 100%; overflow: hidden; overscroll-behavior: none; }
-    body {
-      position: fixed; top: 0; left: 0; right: 0;   /* pin the shell to the viewport top */
-      height: 100vh;                                 /* fallback */
-      height: 100dvh;                                /* dynamic viewport height — tracks the toolbar */
+    /* Lock scrolling on BOTH html and body (iOS scrolls the documentElement), and
+       size the shell to a JS-measured visible height (--app-height) since iOS
+       miscomputes 100vh/100dvh at initial load. */
+    html, body {
+      margin: 0; height: 100%;
       overflow: hidden; overscroll-behavior: none;
+    }
+    body {
+      height: 100dvh;                     /* fallback before JS runs */
+      height: var(--app-height, 100dvh);  /* exact visible height, set in JS (reliable on iOS) */
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
       color: var(--ink); background: var(--bg);
       display: flex; flex-direction: column;
@@ -151,6 +152,16 @@
   </section>
 
   <script>
+    // Size the app to the actual visible height. iOS reports window.innerHeight
+    // correctly (unlike 100vh/100dvh at load), so drive layout from it and keep
+    // it in sync on rotate/resize; snap scroll to top in case anything nudged it.
+    const setAppHeight = () => {
+      document.documentElement.style.setProperty("--app-height", window.innerHeight + "px");
+      window.scrollTo(0, 0);
+    };
+    setAppHeight();
+    ["resize", "orientationchange", "pageshow"].forEach(e => window.addEventListener(e, setAppHeight));
+
     // ---- config -------------------------------------------------------------
     const SUPABASE_URL = "https://zcbcweteictqafpipkuk.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpjYmN3ZXRlaWN0cWFmcGlwa3VrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2NjU0MTAsImV4cCI6MjEwMzI0MTQxMH0.RaxkBfq54wjWnkjXvHe2uWFrPRFDGa0liMrJhh2B7Rg";
@@ -331,11 +342,10 @@
     loadWards();
     loadCrimes();
 
-    // belt-and-suspenders: if a mobile browser scrolls the map into view on load,
-    // snap back to the top so the header stays visible
-    const snapTop = () => window.scrollTo(0, 0);
-    window.addEventListener("load", snapTop);
-    setTimeout(snapTop, 400);
+    // re-measure after load + a beat (iOS' toolbar settles late) and refresh the map
+    const settle = () => { setAppHeight(); map.invalidateSize(); };
+    window.addEventListener("load", settle);
+    setTimeout(settle, 300);
   </script>
 </body>
 </html>
