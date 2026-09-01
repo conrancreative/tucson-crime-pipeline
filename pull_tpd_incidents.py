@@ -156,6 +156,51 @@ def refresh_marts(conn):
             cur.close()
 
 
+def source_freshness():
+    """Newest crime of ANY type in the 45-day layer (a denser freshness signal
+    than sparse bike thefts) + how many crimes it currently holds.
+    Returns (occurred_ms, reported_ms, count)."""
+    params = {
+        "where": "1=1",
+        "outStatistics": json.dumps([
+            {"statisticType": "max", "onStatisticField": "DATETIME_OCCU", "outStatisticFieldName": "occ"},
+            {"statisticType": "max", "onStatisticField": "DATETIME_REPT", "outStatisticFieldName": "rep"},
+            {"statisticType": "count", "onStatisticField": "OBJECTID", "outStatisticFieldName": "n"},
+        ]),
+        "f": "json",
+    }
+    resp = requests.get(f"{BASE}/{LAST45_LAYER}/query", params=params, timeout=60)
+    resp.raise_for_status()
+    a = resp.json()["features"][0]["attributes"]
+    return a.get("occ"), a.get("rep"), a.get("n")
+
+
+def log_run(conn, mode, bikes_processed):
+    """Record this run's freshness into ingest_runs. Best-effort — never fail the
+    pull over logging (e.g. if 07_ingest_log.sql hasn't been applied yet)."""
+    try:
+        occ, rep, n = source_freshness()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            insert into ingest_runs
+                (mode, bikes_processed, source_45d_count,
+                 source_latest_occurred, source_latest_reported, our_latest_bike)
+            values (%s, %s, %s, to_timestamp(%s), to_timestamp(%s),
+                to_timestamp((select max((payload->'attributes'->>'DATETIME_OCCU')::bigint / 1000.0)
+                   from raw_tpd_incidents)))
+            """,
+            (mode, bikes_processed, n,
+             occ / 1000.0 if occ else None, rep / 1000.0 if rep else None),
+        )
+        conn.commit()
+        cur.close()
+        print(f"Freshness logged (45-day layer holds {n} crimes of all types).")
+    except Exception as e:
+        conn.rollback()
+        print(f"  (freshness log skipped: {e})")
+
+
 def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else "refresh"
 
@@ -178,6 +223,8 @@ def main():
 
     print("Refreshing marts ...")
     refresh_marts(conn)
+
+    log_run(conn, mode, total)
 
     conn.close()
     print(f"Done ({mode}). Rows processed: {total}")
