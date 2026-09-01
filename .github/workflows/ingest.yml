@@ -33,7 +33,22 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python pull_tpd_incidents.py ${{ github.event.inputs.mode || 'refresh' }}
 
+      - name: Pull 2026 reported bike thefts (active current-year source) + refresh marts
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python pull_tpd_reported_2026.py
+
       - name: Pull bike calls-for-service (calls/traffic/crashes) + refresh marts
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python pull_tpd_cfs_bike.py
+
+      - name: Scrape UAPD daily crime log (new entries)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python pull_uapd_log.py refresh
+
+      - name: Geocode new UAPD addresses + refresh UA bike mart
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python geocode_uapd.py

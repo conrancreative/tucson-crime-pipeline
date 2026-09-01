@@ -10,6 +10,19 @@
             "database": "tucson_crime",
             "username": "tom",
             "password": ""
+        },
+        {
+            "ssh": "Disabled",
+            "previewLimit": 100,
+            "server": "aws-0-us-west-2.pooler.supabase.com",
+            "port": 5432,
+            "driver": "PostgreSQL",
+            "name": "tucson crime (supabase)",
+            "database": "postgres",
+            "username": "postgres.zcbcweteictqafpipkuk",
+            "askForPassword": true,
+            "connectionTimeout": 30,
+            "pgOptions": { "ssl": { "rejectUnauthorized": false } }
         }
     ]
 }
