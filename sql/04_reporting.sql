@@ -16,30 +16,33 @@
 -- ----------------------------------------------------------------------------
 drop materialized view if exists mart_bike_crimes;
 
+-- Bike thefts = history (year layers, 2018-2025) + the complete/fresh 2026 source
+-- (ReportedCrimes2026). No overlap by year, so no double-counting. The 45-day
+-- incidents layer's 2026 rows sit in int_incidents but are excluded here (year
+-- <= 2025) -- kept as a stored backup only.
 create materialized view mart_bike_crimes as
 select
     incident_id                            as id,
-    occurred_at,
-    occurred_at_az,
-    year,
+    occurred_at, occurred_at_az, year,
     extract(month from occurred_at)::int   as month,
     trim(to_char(occurred_at, 'Dy'))       as day_of_week,
-    time_occur,
-    division,
-    ward,
-    neighborhood,
-    address,
-    parcel_group,
-    parcel_category,
-    case_status,
-    offense_description,
-    lat,
-    lon,
-    pulled_at,                             -- when we last refreshed this row
-    pulled_at_az
+    time_occur, division, ward, neighborhood, address,
+    parcel_group, parcel_category, case_status, offense_description,
+    lat, lon, pulled_at, pulled_at_az
 from int_incidents
-where is_bicycle
-  and lat is not null and lon is not null      -- map needs a point
+where is_bicycle and year <= 2025
+  and lat is not null and lon is not null
+union all
+select
+    incident_id                            as id,
+    occurred_at, occurred_at_az, year,
+    extract(month from occurred_at)::int   as month,
+    trim(to_char(occurred_at, 'Dy'))       as day_of_week,
+    null::text, null::text, ward, neighborhood, address,
+    null::text, null::text, null::text, offense_description,
+    lat, lon, pulled_at, pulled_at_az
+from int_reported_2026
+where is_bicycle and lat is not null and lon is not null
 order by occurred_at desc;
 
 -- unique index enables REFRESH ... CONCURRENTLY and speeds up point lookups
@@ -63,13 +66,21 @@ create index if not exists mart_bike_crimes_geo_idx
 drop materialized view if exists mart_bike_stats;
 
 create materialized view mart_bike_stats as
+with all_bikes as (
+    select occurred_at, year, ward
+    from int_incidents
+    where is_bicycle and year <= 2025
+    union all
+    select occurred_at, year, ward
+    from int_reported_2026
+    where is_bicycle
+)
 select
     year,
     date_trunc('month', occurred_at)::date as month,
     ward,
     count(*)                               as incidents
-from int_incidents
-where is_bicycle
+from all_bikes
 group by 1, 2, 3
 order by 2 desc, 4 desc;
 
