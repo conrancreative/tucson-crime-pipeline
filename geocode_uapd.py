@@ -13,6 +13,7 @@ Usage:
 """
 
 import os
+import re
 import time
 import requests
 import psycopg2
@@ -25,23 +26,43 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 CENSUS_URL = "https://geocoding.geo.census.gov/geocoder/locations/onelineaddress"
 DELAY = 0.15   # polite pacing for the free service
 
+_ORD = {"1": "1ST", "2": "2ND", "3": "3RD"}
+_SUFFIX = {"AVENUE": "AVE", "AV": "AVE", "BOULEVARD": "BLVD", "BL": "BLVD",
+           "STREET": "ST", "DRIVE": "DR", "ROAD": "RD", "PLACE": "PL",
+           "LANE": "LN", "WY": "WAY"}
+
+
+def normalize(address):
+    """Canonicalize an address (mirrors SQL uapd_norm_addr): drop punctuation,
+    standardize suffixes, add ordinal street suffixes. Boosts Census hit rate."""
+    s = re.sub(r"\s+", " ", re.sub(r"[.,]", "", address.upper())).strip()
+    s = " ".join(_SUFFIX.get(w, w) for w in s.split())
+    # ordinal street names before a suffix: "6 ST" -> "6TH ST"
+    def ordn(m):
+        n = m.group(1)
+        return f"{_ORD.get(n, n + 'TH')} {m.group(2)}"
+    return re.sub(r"\b(\d{1,2}) (ST|AVE)\b", ordn, s)
+
 
 def geocode(address):
-    """Return (lat, lon, matched_address) or (None, None, None)."""
-    params = {
-        "address": f"{address}, Tucson, AZ",
-        "benchmark": "Public_AR_Current",
-        "format": "json",
-    }
-    try:
-        resp = requests.get(CENSUS_URL, params=params, timeout=30)
-        resp.raise_for_status()
-        matches = resp.json()["result"]["addressMatches"]
-        if matches:
-            c = matches[0]["coordinates"]
-            return c["y"], c["x"], matches[0]["matchedAddress"]
-    except Exception:
-        pass
+    """Return (lat, lon, matched_address) or (None, None, None). Tries the raw
+    address, then a normalized form if that misses."""
+    candidates = [address]
+    norm = normalize(address)
+    if norm != address:
+        candidates.append(norm)
+    for q in candidates:
+        try:
+            resp = requests.get(CENSUS_URL, params={
+                "address": f"{q}, Tucson, AZ",
+                "benchmark": "Public_AR_Current", "format": "json"}, timeout=30)
+            resp.raise_for_status()
+            matches = resp.json()["result"]["addressMatches"]
+            if matches:
+                c = matches[0]["coordinates"]
+                return c["y"], c["x"], matches[0]["matchedAddress"]
+        except Exception:
+            pass
     return None, None, None
 
 

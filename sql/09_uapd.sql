@@ -28,6 +28,8 @@ create index if not exists raw_uapd_log_offense_idx on raw_uapd_log (offense_dt)
 -- TRANSFORM: clean the log + join geocoded coordinates. Uses offense time when
 -- present, else report time. Drops a few malformed source dates (year < 2015).
 -- ----------------------------------------------------------------------------
+-- Coordinate preference: manual override (campus spots Census can't place) >
+-- Census geocode > NULL (mart_uapd_bike then falls back to Old Main).
 create or replace view int_uapd as
 select
     u.case_number,
@@ -36,12 +38,14 @@ select
     u.nature,
     u.address,
     u.disposition,
-    g.lat,
-    g.lon,
+    coalesce(o.lat, g.lat)                           as lat,
+    coalesce(o.lon, g.lon)                           as lon,
     (u.nature = 'LARCENY/BICYCLES')                  as is_bike_theft,
     (u.nature = 'TRAFFIC ACCIDENT/INJURY/BICYCLE')   as is_bike_crash
 from raw_uapd_log u
-left join geocode_cache g on g.address = u.address
+left join geocode_cache     g on g.address = u.address
+left join geocode_overrides o on o.norm_address = uapd_norm_addr(u.address)
+                              and o.lat is not null
 where coalesce(u.offense_dt, u.report_dt) >= timestamp '2015-01-01';
 
 
