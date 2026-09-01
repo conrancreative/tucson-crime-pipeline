@@ -25,10 +25,15 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      - name: Pull incidents + refresh marts
+      - name: Pull reported bike thefts + refresh marts
         env:
           # Set this repo secret to your Supabase **Session pooler** connection string
           # (Project → Settings → Database → Connection string → Session pooler).
           # The direct db.<ref>.supabase.co host is IPv6-only and won't work on GitHub runners.
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python pull_tpd_incidents.py ${{ github.event.inputs.mode || 'refresh' }}
+
+      - name: Pull bike calls-for-service (calls/traffic/crashes) + refresh marts
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python pull_tpd_cfs_bike.py
