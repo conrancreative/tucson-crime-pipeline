@@ -1,4 +1,9 @@
 {
+    // Don't auto-format .sql on save — SQLTools' formatter reflows our hand-laid
+    // seed files. Turn it off for SQL only; other languages still format on save.
+    "[sql]": {
+        "editor.formatOnSave": false
+    },
     "sqltools.connections": [
         {
             "ssh": "Disabled",
