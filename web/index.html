@@ -54,6 +54,7 @@
     }
     .meta { color: var(--ink-2); font-size: 13px; }
     .meta b { color: var(--ink); font-variant-numeric: tabular-nums; }
+    #split .ua-tag { color: #AB0520; }   /* UA count in cardinal, matching UA dots */
     #reset {
       font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
       background: var(--ink); color: #fff; border: 0; border-radius: 999px;
@@ -79,6 +80,17 @@
     .leaflet-popup-content { font-size: 13px; line-height: 1.5; margin: 10px 12px; }
     .leaflet-popup-content .d { font-weight: 700; }
     .leaflet-popup-content .s { color: var(--ink-2); }
+    /* UA (University of Arizona PD) source flag — popup line + table pill */
+    .leaflet-popup-content .src-ua {
+      color: #AB0520; font-weight: 700; font-size: 11px;
+      text-transform: uppercase; letter-spacing: .04em; margin-bottom: 3px;
+    }
+    .leaflet-popup-content .approx { color: var(--ink-2); font-style: italic; }
+    .ua-badge {
+      display: inline-block; background: #AB0520; color: #fff; font-size: 10px;
+      font-weight: 700; letter-spacing: .04em; padding: 1px 5px; border-radius: 4px;
+      vertical-align: middle; margin-left: 6px;
+    }
 
     #status {
       position: absolute; z-index: 500; top: 14px; left: 50%; transform: translateX(-50%);
@@ -136,7 +148,7 @@
 
   <div class="subbar">
     <button id="reset" style="display:none"><span id="reset-label"></span> <span class="x">✕</span></button>
-    <div class="meta"><b id="count">—</b> <span id="scope">in 2026</span> · from <b id="from">—</b> through <b id="through">—</b></div>
+    <div class="meta"><b id="count">—</b> <span id="scope">in 2026</span><span id="split"></span> · from <b id="from">—</b> through <b id="through">—</b></div>
   </div>
 
   <section id="view-map" class="view active">
@@ -186,6 +198,11 @@
     const WARD_COLORS = { "1": "#4E79A7", "2": "#59A14F", "3": "#8158B0", "4": "#C94F9C", "5": "#76B7B2", "6": "#E24A43" };
     const wardColor = w => WARD_COLORS[w] || "#9ca3af";
 
+    // dot colors by source: TPD (city) vs UAPD (University of Arizona PD)
+    const TPD_COLOR = "#e8833a";   // existing orange accent
+    const UA_COLOR  = "#AB0520";   // UA cardinal red
+    const dotColor  = src => (src === "UAPD" ? UA_COLOR : TPD_COLOR);
+
     // wards go in a lower pane so the theft dots sit on top and stay clickable
     map.createPane("wards");
     map.getPane("wards").style.zIndex = 350;        // ward fills, below the overlay pane (400)
@@ -208,9 +225,15 @@
       });
     }
     function updateHeader(ward) {
-      document.getElementById("count").textContent =
-        ward ? crimeMarkers.filter(m => m.ward === ward).length : crimeMarkers.length;
+      const set = ward ? crimeMarkers.filter(m => m.ward === ward) : crimeMarkers;
+      const ua = set.filter(m => m.source === "UAPD").length;
+      const tpd = set.length - ua;
+      document.getElementById("count").textContent = set.length;
       document.getElementById("scope").textContent = ward ? `in Ward ${ward}` : "in 2026";
+      // show the TPD vs UA split whenever the current view contains UA thefts (Ward 6)
+      document.getElementById("split").innerHTML = ua > 0
+        ? ` · <b>${tpd}</b> TPD · <b class="ua-tag">${ua}</b> UA`
+        : "";
       document.getElementById("reset").style.display = ward ? "inline-flex" : "none";
     }
     function selectWard(ward, member, layer) {
@@ -288,7 +311,7 @@
     // ---- crimes -------------------------------------------------------------
     async function loadCrimes() {
       const params = new URLSearchParams({
-        select: "id,occurred_at_az,ward,neighborhood,address,lat,lon",
+        select: "id,occurred_at_az,ward,neighborhood,address,lat,lon,source,geocoded",
         year: `eq.${YEAR}`, order: "occurred_at.desc"
       });
       let rows;
@@ -308,23 +331,31 @@
         const t = r.occurred_at_az;
         if (t) { if (!newest || t > newest) newest = t; if (!oldest || t < oldest) oldest = t; }
 
+        const isUA = r.source === "UAPD";
+        const approx = isUA && r.geocoded === false;   // placed at campus center
+
         if (r.lat != null && r.lon != null) {
           const marker = L.circleMarker([r.lat, r.lon], {
-            radius: DOT_RADIUS, color: "#fff", weight: 1.5, fillColor: "#e8833a", fillOpacity: DOT_FILL
+            radius: DOT_RADIUS, color: "#fff", weight: 1.5,
+            fillColor: dotColor(r.source), fillOpacity: DOT_FILL,
+            dashArray: approx ? "2 3" : null        // dashed ring = approximate location
           }).bindPopup(
+            (isUA ? `<div class="src-ua">● University of Arizona PD</div>` : "") +
             `<div class="d">${fmtDate(r.occurred_at_az)}</div>` +
             `<div>${esc(r.address) || "Address withheld"}</div>` +
-            `<div class="s">Ward ${esc(r.ward) || "?"}${r.neighborhood ? " · " + esc(r.neighborhood) : ""}</div>`
+            `<div class="s">Ward ${esc(r.ward) || "?"}${r.neighborhood ? " · " + esc(r.neighborhood) : ""}</div>` +
+            (approx ? `<div class="approx">Approximate — placed at campus center</div>` : "")
           );
-          crimeMarkers.push({ marker, ward: r.ward });
+          crimeMarkers.push({ marker, ward: r.ward, source: r.source });
           pts.push([r.lat, r.lon]);
         }
 
         const tr = document.createElement("tr");
         tr.dataset.ward = r.ward || "";
+        tr.dataset.source = r.source || "";
         tr.innerHTML =
           `<td>${fmtDate(r.occurred_at_az)}</td>` +
-          `<td class="addr">${esc(r.address) || "—"}</td>` +
+          `<td class="addr">${esc(r.address) || "—"}${isUA ? `<span class="ua-badge">UA</span>` : ""}</td>` +
           `<td><span class="ward-pill" style="background:${wardColor(r.ward)};color:#fff">${esc(r.ward) || "?"}</span></td>` +
           `<td>${esc(r.neighborhood) || "—"}</td>`;
         tbody.appendChild(tr);
