@@ -80,10 +80,10 @@
     .leaflet-popup-content { font-size: 13px; line-height: 1.5; margin: 10px 12px; }
     .leaflet-popup-content .d { font-weight: 700; }
     .leaflet-popup-content .s { color: var(--ink-2); }
-    /* UA (University of Arizona PD) source flag — popup line + table pill */
+    /* UA (University of Arizona PD) source flag — small, muted, transparent red */
     .leaflet-popup-content .src-ua {
-      color: #AB0520; font-weight: 700; font-size: 11px;
-      text-transform: uppercase; letter-spacing: .04em; margin-bottom: 3px;
+      color: rgba(171, 5, 32, .6); font-weight: 600; font-size: 10px;
+      text-transform: uppercase; letter-spacing: .06em; margin-bottom: 2px;
     }
     .leaflet-popup-content .approx { color: var(--ink-2); font-style: italic; }
     .ua-badge {
@@ -111,6 +111,15 @@
     tbody td { padding: 10px 20px; border-bottom: 1px solid #f1f2f4; white-space: nowrap; }
     tbody td.addr { white-space: normal; }
     tbody tr:hover { background: #fafafa; }
+    /* rows are clickable → jump to the dot on the map. Keep it clutter-free:
+       the hint only appears on hover (desktop); on touch it stays faintly visible. */
+    tbody tr { cursor: pointer; }
+    .go-map {
+      color: var(--ink-2); font-size: 11px; font-weight: 600; white-space: nowrap;
+      margin-left: 8px; opacity: 0; transition: opacity .12s;
+    }
+    tbody tr:hover .go-map { opacity: .7; }
+    @media (hover: none) { .go-map { opacity: .5; } }
     .ward-pill {
       display: inline-block; min-width: 22px; text-align: center;
       background: #f3f4f6; border-radius: 5px; padding: 1px 6px; font-weight: 600; font-size: 12px;
@@ -260,6 +269,16 @@
     }
     document.querySelectorAll(".tab").forEach(t => t.onclick = () => show(t.dataset.view));
 
+    // ---- table row → its dot on the map -------------------------------------
+    function goToMarker(rec) {
+      show("map");
+      if (!crimesLayer.hasLayer(rec.marker)) crimesLayer.addLayer(rec.marker);
+      setTimeout(() => {                                   // after the map re-sizes
+        map.setView(rec.marker.getLatLng(), Math.max(map.getZoom(), 17), { animate: true });
+        rec.marker.openPopup();
+      }, 60);
+    }
+
     const statusEl = document.getElementById("status");
     const setStatus = (m, err) => {
       statusEl.style.display = m ? "block" : "none";
@@ -334,19 +353,21 @@
         const isUA = r.source === "UAPD";
         const approx = isUA && r.geocoded === false;   // placed at campus center
 
+        let rec = null;
         if (r.lat != null && r.lon != null) {
           const marker = L.circleMarker([r.lat, r.lon], {
             radius: DOT_RADIUS, color: "#fff", weight: 1.5,
             fillColor: dotColor(r.source), fillOpacity: DOT_FILL,
             dashArray: approx ? "2 3" : null        // dashed ring = approximate location
           }).bindPopup(
-            (isUA ? `<div class="src-ua">● University of Arizona PD</div>` : "") +
+            (isUA ? `<div class="src-ua">UAPD</div>` : "") +
             `<div class="d">${fmtDate(r.occurred_at_az)}</div>` +
             `<div>${esc(r.address) || "Address withheld"}</div>` +
             `<div class="s">Ward ${esc(r.ward) || "?"}${r.neighborhood ? " · " + esc(r.neighborhood) : ""}</div>` +
             (approx ? `<div class="approx">Approximate — placed at campus center</div>` : "")
           );
-          crimeMarkers.push({ marker, ward: r.ward, source: r.source });
+          rec = { marker, ward: r.ward, source: r.source };
+          crimeMarkers.push(rec);
           pts.push([r.lat, r.lon]);
         }
 
@@ -355,9 +376,11 @@
         tr.dataset.source = r.source || "";
         tr.innerHTML =
           `<td>${fmtDate(r.occurred_at_az)}</td>` +
-          `<td class="addr">${esc(r.address) || "—"}${isUA ? `<span class="ua-badge">UA</span>` : ""}</td>` +
+          `<td class="addr">${esc(r.address) || "—"}${isUA ? `<span class="ua-badge">UA</span>` : ""}` +
+            `<span class="go-map">View on map ↗</span></td>` +
           `<td><span class="ward-pill" style="background:${wardColor(r.ward)};color:#fff">${esc(r.ward) || "?"}</span></td>` +
           `<td>${esc(r.neighborhood) || "—"}</td>`;
+        if (rec) tr.onclick = () => goToMarker(rec);       // click the row → its dot
         tbody.appendChild(tr);
       }
 
