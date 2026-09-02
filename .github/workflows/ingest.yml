@@ -4,7 +4,8 @@ name: Ingest bike crime data
 # refreshes the public materialized views. Runs daily and can be triggered by hand.
 on:
   schedule:
-    - cron: "0 12 * * *"      # 12:00 UTC = 05:00 America/Phoenix (year-round, no DST)
+    - cron: "17 12 * * *"     # 12:17 UTC = 05:17 America/Phoenix (year-round, no DST).
+                              # Off the top of the hour: GitHub delays/drops on-the-hour schedules under load.
   workflow_dispatch:
     inputs:
       mode:
