@@ -88,6 +88,8 @@ document.getElementById("reset").onclick = resetSelection;
 function show(view) {
   document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === "view-" + view));
   document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.view === view));
+  // the count/date subbar only makes sense for the map & table
+  document.querySelector(".subbar").style.display = view === "sources" ? "none" : "";
   if (view === "map") setTimeout(() => map.invalidateSize(), 0);
 }
 document.querySelectorAll(".tab").forEach(t => t.onclick = () => show(t.dataset.view));
@@ -219,8 +221,152 @@ async function loadCrimes() {
   setStatus(null);
 }
 
+// ---- data sources tab ---------------------------------------------------
+// Static copy per source; live timestamps/counts come from the api_data_sources
+// view and are matched by `key`. `live` sources are flagged stale after 48h;
+// static ones (backfilled once) are exempt. `desc` may contain inline HTML.
+const SOURCES = [
+  {
+    key: "reported_2026", live: true, method: ["API", "ArcGIS"],
+    name: "Tucson Police Department: Reported Crimes",
+    desc: `The City of Tucson's official open-data crime layer, filtered to bicycle ` +
+          `larceny (offense code <span class="code">0606</span>). This is the primary ` +
+          `source for current-year thefts shown on the map.`,
+    coverage: "Jan 2026 to present",
+    cadence: "Source updates ~daily; pulled daily at 5:00 AM AZ",
+    endpoint: "services3.arcgis.com/…/TPDOpenDataReportedCrimes2026/FeatureServer/0"
+  },
+  {
+    key: "uapd", live: true, method: ["Scraper", "HTML"],
+    name: "University of Arizona Police Department: Daily Activity Log",
+    desc: `The University of Arizona Police Department's Clery Act daily crime and ` +
+          `safety log for the campus area. Scraped, filtered to bicycle larceny, then ` +
+          `geocoded to campus locations.`,
+    coverage: "2019 to present",
+    cadence: "Posted daily; scraped daily at 5:00 AM AZ",
+    endpoint: "uapd.arizona.edu/public-information/uapd-daily-activity-log"
+  },
+  {
+    key: "incidents_history", live: false, method: ["API", "ArcGIS"],
+    name: "Tucson Police Department: Incident Records (2018 to 2025)",
+    desc: `Tucson Police incident records by year, used for the historical ` +
+          `bicycle-theft trend. Backfilled once from the annual open-data layers.`,
+    coverage: "2018 to 2025",
+    cadence: "Static; backfilled once",
+    endpoint: "gis.tucsonaz.gov/…/OpenData_PublicSafety/MapServer (year layers)"
+  },
+  {
+    key: "incidents_45day", live: true, method: ["API", "ArcGIS"],
+    name: "Tucson Police Department: 45-Day Incidents",
+    desc: `The rolling 45-day window of Tucson Police incident records. Stored as a ` +
+          `backup and freshness signal; its rows are not shown on the map, since the ` +
+          `Reported Crimes layer is more complete.`,
+    coverage: "Rolling last 45 days",
+    cadence: "Updated daily; pulled daily at 5:00 AM AZ",
+    endpoint: "gis.tucsonaz.gov/…/OpenData_PublicSafety/MapServer/42"
+  },
+  {
+    key: "cfs_bike", live: true, method: ["API", "ArcGIS"],
+    name: "Tucson Police Department: Calls for Service",
+    desc: `The preliminary police dispatch feed (about a two-day lag), filtered to ` +
+          `bicycle-related calls. Stored for reference; not shown on the map.`,
+    coverage: "Rolling last 45 days",
+    cadence: "Updated daily (~2-day lag); pulled daily",
+    endpoint: "gis.tucsonaz.gov/…/OpenData_PublicSafety/MapServer/41"
+  },
+  {
+    key: "geocoding", live: true, method: ["Geocoder"],
+    name: "Address Geocoding",
+    desc: `Address-to-coordinate lookups from the U.S. Census geocoder and ` +
+          `OpenStreetMap, plus manual overrides for campus locations the geocoders ` +
+          `cannot place.`,
+    coverage: "All source addresses",
+    cadence: "Runs after each scrape; new addresses only",
+    endpoint: "geocoding.geo.census.gov + nominatim.openstreetmap.org",
+    latestFromCount: true, countLabel: "Addresses cached", countUnit: ""
+  },
+  {
+    key: "wards", live: false, method: ["Reference"],
+    name: "Tucson City Council Ward Boundaries",
+    desc: `Council ward boundaries used to color and filter the map. A static ` +
+          `reference layer from Pima County open data.`,
+    coverage: "Current boundaries",
+    cadence: "Static reference",
+    endpoint: "gisopendata.pima.gov/datasets (City of Tucson wards)",
+    latestFromCount: true, countLabel: "Boundaries", countUnit: " wards"
+  }
+];
+
+// parse a plain YYYY-MM-DD as a local date (avoids the UTC "off by one day" bug)
+const fmtDateOnly = s => {
+  if (!s) return "—";
+  const [y, m, d] = s.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-US",
+    { month: "short", day: "numeric", year: "numeric" });
+};
+// format the AZ-local refresh stamp ("2026-09-01 08:42:…") as "Sep 1, 2026 · 8:42 AM"
+const fmtStamp = az => {
+  if (!az) return "—";
+  const d = new Date(az.replace(" ", "T"));
+  if (isNaN(d)) return az;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) +
+    " · " + d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+};
+
+async function loadSources() {
+  let rows = [];
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/api_data_sources`, { headers: apiHeaders });
+    if (res.ok) rows = await res.json();
+  } catch (_) { /* leave timestamps blank if unreachable */ }
+  const byKey = Object.fromEntries(rows.map(r => [r.source_key, r]));
+
+  document.getElementById("src-asof").textContent = "as of " +
+    new Date().toLocaleString("en-US", { timeZone: "America/Phoenix",
+      month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }) + " AZ";
+
+  let staleCount = 0;
+  document.getElementById("src-cards").innerHTML = SOURCES.map(src => {
+    const row = byKey[src.key] || {};
+    const hrs = row.last_refreshed ? (Date.now() - new Date(row.last_refreshed)) / 36e5 : Infinity;
+    const stale = src.live && hrs > 48;
+    if (stale) staleCount++;
+    const chip = src.method.map(esc).join('<span class="sep">·</span>');
+    const left = src.latestFromCount
+      ? { lbl: src.countLabel, val: (row.row_count ?? 0).toLocaleString() + (src.countUnit || "") }
+      : { lbl: "Latest data row", val: fmtDateOnly(row.latest_data_row) };
+    const days = isFinite(hrs) ? Math.floor(hrs / 24) : null;
+    return `<div class="src-card">
+      <div class="src-card-top">
+        <div class="src-name"><span class="src-dot ${stale ? "warn" : "ok"}"></span><h3>${esc(src.name)}</h3></div>
+        <span class="src-chip">${chip}</span>
+      </div>
+      <p class="src-desc">${src.desc}</p>
+      <div class="src-meta">
+        <div><span class="lbl">Coverage</span><span class="val">${esc(src.coverage)}</span></div>
+        <div><span class="lbl">Update cadence</span><span class="val">${esc(src.cadence)}</span></div>
+      </div>
+      <div class="src-endpoint"><span class="k">GET</span><span class="u">${esc(src.endpoint)}</span></div>
+      <div class="src-stats">
+        <div class="src-stat"><span class="lbl">${esc(left.lbl)}</span><span class="big">${left.val}</span></div>
+        <div class="src-stat"><span class="lbl">Last refreshed</span>
+          <span class="big">${fmtStamp(row.last_refreshed_az)} <span class="az">AZ</span></span>
+          ${stale ? `<span class="warn">Not refreshed in ${days} days</span>` : ""}
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+
+  const overall = document.getElementById("src-overall");
+  overall.className = "src-overall " + (staleCount ? "warn" : "ok");
+  overall.innerHTML = staleCount
+    ? `<span class="pip"></span> <b>${staleCount} of ${SOURCES.length} sources</b>&nbsp;not refreshed in 48 hours`
+    : `<span class="pip"></span> <b>All ${SOURCES.length} sources</b>&nbsp;refreshed on schedule`;
+}
+
 loadWards();
 loadCrimes();
+loadSources();
 
 // re-measure after load + a beat (iOS' toolbar settles late) and refresh the map
 const settle = () => { setAppHeight(); map.invalidateSize(); };

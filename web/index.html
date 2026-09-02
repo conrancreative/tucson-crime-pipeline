@@ -18,6 +18,7 @@
     <nav>
       <button class="tab on" data-view="map">Map</button>
       <button class="tab" data-view="table">Table</button>
+      <button class="tab" data-view="sources">Sources</button>
     </nav>
   </header>
 
@@ -36,6 +37,17 @@
       <thead><tr><th>Date</th><th>Address</th><th>Ward</th><th>Neighborhood</th></tr></thead>
       <tbody id="rows"></tbody>
     </table>
+  </section>
+
+  <section id="view-sources" class="view">
+    <div class="sources-wrap">
+      <div class="src-top">
+        <h2 class="src-title">Data Sources</h2>
+        <span id="src-asof" class="src-asof"></span>
+      </div>
+      <div id="src-overall" class="src-overall"></div>
+      <div id="src-cards" class="src-cards"></div>
+    </div>
   </section>
 
   <!-- config: safe to edit; must load before app.js (which reads these) -->
