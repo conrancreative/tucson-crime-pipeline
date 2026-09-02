@@ -150,7 +150,7 @@
       #view-table .go-map-txt { display: none; }
       #view-table td .go-map {
         position: absolute; right: 14px; bottom: 11px; margin: 0;
-        opacity: .5; font-size: 16px; color: var(--accent);
+        opacity: .6; font-size: 16px; color: var(--ink-2);
       }
     }
   </style>
@@ -283,8 +283,11 @@
       show("map");
       if (!crimesLayer.hasLayer(rec.marker)) crimesLayer.addLayer(rec.marker);
       setTimeout(() => {                                   // after the map re-sizes
-        map.setView(rec.marker.getLatLng(), Math.max(map.getZoom(), 17), { animate: true });
+        const p = rec.marker.getPopup();
+        if (p) p.options.autoPan = false;                 // don't let the popup shove the dot off-center
         rec.marker.openPopup();
+        map.setView(rec.marker.getLatLng(), Math.max(map.getZoom(), 17), { animate: true });
+        if (p) setTimeout(() => { p.options.autoPan = true; }, 400);  // restore for normal dot clicks
       }, 60);
     }
 
