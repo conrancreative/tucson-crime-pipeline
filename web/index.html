@@ -286,7 +286,7 @@
         const p = rec.marker.getPopup();
         if (p) p.options.autoPan = false;                 // don't let the popup shove the dot off-center
         rec.marker.openPopup();
-        map.setView(rec.marker.getLatLng(), Math.max(map.getZoom(), 17), { animate: true });
+        map.setView(rec.marker.getLatLng(), Math.max(map.getZoom(), 16), { animate: true });
         if (p) setTimeout(() => { p.options.autoPan = true; }, 400);  // restore for normal dot clicks
       }, 60);
     }
