@@ -80,9 +80,9 @@
     .leaflet-popup-content { font-size: 13px; line-height: 1.5; margin: 10px 12px; }
     .leaflet-popup-content .d { font-weight: 700; }
     .leaflet-popup-content .s { color: var(--ink-2); }
-    /* UA (University of Arizona PD) source flag — small, muted, transparent red */
+    /* UA (University of Arizona PD) source flag — small, full cardinal (matches the dot) */
     .leaflet-popup-content .src-ua {
-      color: rgba(171, 5, 32, .6); font-weight: 600; font-size: 10px;
+      color: #AB0520; font-weight: 600; font-size: 10px;
       text-transform: uppercase; letter-spacing: .06em; margin-bottom: 2px;
     }
     .leaflet-popup-content .approx { color: var(--ink-2); font-style: italic; }
@@ -142,7 +142,16 @@
       #view-table td:nth-child(1) { font-weight: 600; padding-right: 42px; }   /* date */
       #view-table td:nth-child(2) { color: var(--ink); margin-top: 1px; }      /* address */
       #view-table td:nth-child(3) { position: absolute; top: 11px; right: 16px; }  /* ward pill */
-      #view-table td:nth-child(4) { color: var(--ink-2); font-size: 12.5px; margin-top: 1px; }  /* neighborhood */
+      #view-table td:nth-child(4) { color: var(--ink-2); font-size: 12.5px; margin-top: 1px;
+                                    padding-right: 24px; }                        /* neighborhood */
+
+      /* no hover on touch → show a persistent, muted ↗ on the right edge as the
+         "tap to view on map" cue (native disclosure pattern); hide the label. */
+      #view-table .go-map-txt { display: none; }
+      #view-table td .go-map {
+        position: absolute; right: 14px; bottom: 11px; margin: 0;
+        opacity: .5; font-size: 16px; color: var(--accent);
+      }
     }
   </style>
 </head>
@@ -377,7 +386,7 @@
         tr.innerHTML =
           `<td>${fmtDate(r.occurred_at_az)}</td>` +
           `<td class="addr">${esc(r.address) || "—"}${isUA ? `<span class="ua-badge">UA</span>` : ""}` +
-            `<span class="go-map">View on map ↗</span></td>` +
+            `<span class="go-map"><span class="go-map-txt">View on map </span>↗</span></td>` +
           `<td><span class="ward-pill" style="background:${wardColor(r.ward)};color:#fff">${esc(r.ward) || "?"}</span></td>` +
           `<td>${esc(r.neighborhood) || "—"}</td>`;
         if (rec) tr.onclick = () => goToMarker(rec);       // click the row → its dot
