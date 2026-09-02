@@ -234,7 +234,7 @@ const SOURCES = [
           `source for current-year thefts shown on the map.`,
     coverage: "Jan 2026 to present",
     cadence: "Source updates ~daily; pulled daily at 5:00 AM AZ",
-    endpoint: "services3.arcgis.com/…/TPDOpenDataReportedCrimes2026/FeatureServer/0"
+    endpoint: "https://services3.arcgis.com/9coHY2fvuFjG9HQX/arcgis/rest/services/TPDOpenDataReportedCrimes2026/FeatureServer/0"
   },
   {
     key: "uapd", live: true, method: ["Scraper", "HTML"],
@@ -244,7 +244,7 @@ const SOURCES = [
           `geocoded to campus locations.`,
     coverage: "2019 to present",
     cadence: "Posted daily; scraped daily at 5:00 AM AZ",
-    endpoint: "uapd.arizona.edu/public-information/uapd-daily-activity-log"
+    endpoint: "https://uapd.arizona.edu/public-information/uapd-daily-activity-log"
   },
   {
     key: "incidents_history", live: false, method: ["API", "ArcGIS"],
@@ -253,26 +253,27 @@ const SOURCES = [
           `bicycle-theft trend. Backfilled once from the annual open-data layers.`,
     coverage: "2018 to 2025",
     cadence: "Static; backfilled once",
-    endpoint: "gis.tucsonaz.gov/…/OpenData_PublicSafety/MapServer (year layers)"
+    endpoint: "https://gis.tucsonaz.gov/arcgis/rest/services/PublicMaps/OpenData_PublicSafety/MapServer (year layers 40, 48, 54, 69, 71, 78, 80, 81)"
   },
   {
     key: "incidents_45day", live: true, method: ["API", "ArcGIS"],
     name: "Tucson Police Department: 45-Day Incidents",
-    desc: `The rolling 45-day window of Tucson Police incident records. Stored as a ` +
-          `backup and freshness signal; its rows are not shown on the map, since the ` +
-          `Reported Crimes layer is more complete.`,
+    desc: `The rolling 45-day window of Tucson Police incident records. Kept as a ` +
+          `backup to fill any gaps if the primary Reported Crimes source falls behind ` +
+          `or drops rows. Stored but not shown on the map, and used as a freshness signal.`,
     coverage: "Rolling last 45 days",
     cadence: "Updated daily; pulled daily at 5:00 AM AZ",
-    endpoint: "gis.tucsonaz.gov/…/OpenData_PublicSafety/MapServer/42"
+    endpoint: "https://gis.tucsonaz.gov/arcgis/rest/services/PublicMaps/OpenData_PublicSafety/MapServer/42"
   },
   {
     key: "cfs_bike", live: true, method: ["API", "ArcGIS"],
     name: "Tucson Police Department: Calls for Service",
     desc: `The preliminary police dispatch feed (about a two-day lag), filtered to ` +
-          `bicycle-related calls. Stored for reference; not shown on the map.`,
+          `bicycle-related calls. Kept to catch recent thefts that have not yet appeared ` +
+          `in the primary Reported Crimes source. Stored but not shown on the map.`,
     coverage: "Rolling last 45 days",
     cadence: "Updated daily (~2-day lag); pulled daily",
-    endpoint: "gis.tucsonaz.gov/…/OpenData_PublicSafety/MapServer/41"
+    endpoint: "https://gis.tucsonaz.gov/arcgis/rest/services/PublicMaps/OpenData_PublicSafety/MapServer/41"
   },
   {
     key: "geocoding", live: true, method: ["Geocoder"],
@@ -282,7 +283,7 @@ const SOURCES = [
           `cannot place.`,
     coverage: "All source addresses",
     cadence: "Runs after each scrape; new addresses only",
-    endpoint: "geocoding.geo.census.gov + nominatim.openstreetmap.org",
+    endpoint: "https://geocoding.geo.census.gov/geocoder/locations/onelineaddress · https://nominatim.openstreetmap.org/search",
     latestFromCount: true, countLabel: "Addresses cached", countUnit: ""
   },
   {
@@ -292,7 +293,7 @@ const SOURCES = [
           `reference layer from Pima County open data.`,
     coverage: "Current boundaries",
     cadence: "Static reference",
-    endpoint: "gisopendata.pima.gov/datasets (City of Tucson wards)",
+    endpoint: "https://gisopendata.pima.gov/datasets/PimaMaps::wards-city-of-tucson.geojson",
     latestFromCount: true, countLabel: "Boundaries", countUnit: " wards"
   }
 ];
