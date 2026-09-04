@@ -102,7 +102,11 @@ function show(view) {
   if (view === "map") setTimeout(() => map.invalidateSize(), 0);
 }
 document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
-  track("tab_view", { tab: t.dataset.view });   // custom event: which tab was opened
+  track("tab_view", {                            // custom event: which tab was opened
+    tab: t.dataset.view,
+    filter_active: selectedWard != null,         // was a ward filter applied?
+    filtered_ward: selectedWard || undefined     // if so, which ward
+  });
   show(t.dataset.view);
 });
 
