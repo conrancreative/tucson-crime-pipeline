@@ -16,7 +16,81 @@
     })(window, document, 'script', 'dataLayer', 'GTM-WWPK4XFK');</script>
   <!-- End Google Tag Manager -->
 
-  <title>Tucson Bike Theft Map — 2026</title>
+  <title>Tucson Bike Theft Map</title>
+
+  <!-- If you're inspecting this site, welcome! I hope you find it useful :) -->
+
+  <!-- SEO -->
+  <meta name="description"
+    content="A live map of reported bicycle thefts in Tucson, Arizona. Explore theft locations by city council ward, browse the data table, and see where bikes are stolen — sourced from Tucson Police and University of Arizona Police open data.">
+  <link rel="canonical" href="https://bikes.thomaspconran.com/">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#e8833a">
+
+  <!-- Open Graph (Facebook, iMessage, Slack, LinkedIn) -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Tucson Bike Theft Map">
+  <meta property="og:description"
+    content="A live map of reported bicycle thefts in Tucson, Arizona, broken down by council ward. Sourced from Tucson Police and UAPD open data.">
+  <meta property="og:url" content="https://bikes.thomaspconran.com/">
+  <meta property="og:image" content="https://bikes.thomaspconran.com/og-image.png">
+  <meta property="og:site_name" content="Tucson Bike Thefts">
+
+  <!-- Twitter/X FUCK ELON MUSK-->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Tucson Bike Theft Map">
+  <meta name="twitter:description"
+    content="A live map of reported bicycle thefts in Tucson, Arizona, broken down by council ward.">
+  <meta name="twitter:image" content="https://bikes.thomaspconran.com/og-image.png">
+
+  <!-- Structured data: schema.org Dataset (Google Dataset Search / rich results).
+       app.js stamps a live "dateModified" onto this from the latest data pull. -->
+  <script type="application/ld+json" id="dataset-ld">
+  {
+    "@context": "https://schema.org/",
+    "@type": "Dataset",
+    "name": "Tucson Bike Theft Map",
+    "description": "A regularly updated dataset of reported bicycle thefts in Tucson, Arizona, mapped by location and city council ward. Compiled from Tucson Police Department open crime data (bicycle larceny) and the University of Arizona Police Department daily activity log, then geocoded to map coordinates.",
+    "url": "https://bikes.thomaspconran.com/",
+    "keywords": [
+      "bicycle theft",
+      "bike theft",
+      "Tucson",
+      "Arizona",
+      "crime data",
+      "open data",
+      "Tucson Police Department",
+      "University of Arizona"
+    ],
+    "isAccessibleForFree": true,
+    "creator": {
+      "@type": "Person",
+      "name": "Thomas Conran"
+    },
+    "spatialCoverage": {
+      "@type": "Place",
+      "name": "Tucson, Arizona, USA",
+      "geo": {
+        "@type": "GeoShape",
+        "box": "31.98 -111.10 32.42 -110.70"
+      }
+    },
+    "temporalCoverage": "2018-01-01/..",
+    "sameAs": "https://bikes.thomaspconran.com/",
+    "distribution": [
+      {
+        "@type": "DataDownload",
+        "encodingFormat": "text/html",
+        "contentUrl": "https://bikes.thomaspconran.com/"
+      }
+    ],
+    "includedInDataCatalog": {
+      "@type": "DataCatalog",
+      "name": "City of Tucson Open Data",
+      "url": "https://gisdata.tucsonaz.gov/"
+    }
+  }
+  </script>
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
@@ -66,6 +140,7 @@
           <th>Address</th>
           <th>Ward</th>
           <th>Neighborhood</th>
+          <th>Case</th>
         </tr>
       </thead>
       <tbody id="rows"></tbody>
