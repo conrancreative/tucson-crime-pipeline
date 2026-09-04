@@ -1,0 +1,9 @@
+# Cloudflare Pages headers. Serve our own files with revalidation so a new
+# deploy shows up immediately (the browser still gets fast 304s via ETag when
+# nothing changed). External libs (Leaflet, GTM) set their own caching.
+/index.html
+  Cache-Control: no-cache
+/app.js
+  Cache-Control: no-cache
+/styles.css
+  Cache-Control: no-cache
