@@ -36,8 +36,8 @@ const wardColor = w => WARD_COLORS[w] || "#9ca3af";
 
 // dot colors by source: TPD (city) vs UAPD (University of Arizona PD)
 const TPD_COLOR = "#e8833a";   // existing orange accent
-const UA_COLOR  = "#AB0520";   // UA cardinal red
-const dotColor  = src => (src === "UAPD" ? UA_COLOR : TPD_COLOR);
+const UA_COLOR = "#AB0520";   // UA cardinal red
+const dotColor = src => (src === "UAPD" ? UA_COLOR : TPD_COLOR);
 
 // wards go in a lower pane so the theft dots sit on top and stay clickable
 map.createPane("wards");
@@ -149,6 +149,21 @@ const fmtDay = (az, withYear = true) => {
     withYear ? { month: "short", day: "numeric", year: "numeric" } : { month: "short", day: "numeric" });
 };
 
+// Stamp the JSON-LD Dataset with the latest data-pull date so search engines
+// see an accurate "last updated". `az` is the AZ-local pull time
+// ("2026-09-01 08:42:…"); we keep just the YYYY-MM-DD (a valid schema.org Date,
+// and TZ-safe).
+function setDatasetModified(az) {
+  if (!az) return;
+  const el = document.getElementById("dataset-ld");
+  if (!el) return;
+  try {
+    const data = JSON.parse(el.textContent);
+    data.dateModified = az.slice(0, 10);
+    el.textContent = JSON.stringify(data, null, 2);
+  } catch (_) { /* leave the static JSON-LD as-is if anything goes wrong */ }
+}
+
 // ---- ward overlays (color-coded, translucent) ---------------------------
 async function loadWards() {
   try {
@@ -166,8 +181,10 @@ async function loadWards() {
     };
     L.geoJSON(fc, {
       pane: "wards",
-      style: f => ({ color: wardColor(f.properties.ward), weight: 1.5, opacity: 0.85,
-                     fillColor: wardColor(f.properties.ward), fillOpacity: 0.20 }),
+      style: f => ({
+        color: wardColor(f.properties.ward), weight: 1.5, opacity: 0.85,
+        fillColor: wardColor(f.properties.ward), fillOpacity: 0.20
+      }),
       onEachFeature: (f, layer) => {
         layer.bindTooltip(`<span style="color:${wardColor(f.properties.ward)}">${esc(f.properties.ward)}</span>`,
           { permanent: true, direction: "center", className: "ward-label", pane: "wardlabels", opacity: 0.5 });
@@ -180,7 +197,7 @@ async function loadWards() {
 // ---- crimes -------------------------------------------------------------
 async function loadCrimes() {
   const params = new URLSearchParams({
-    select: "id,occurred_at_az,ward,neighborhood,address,lat,lon,source,geocoded",
+    select: "id,occurred_at_az,ward,neighborhood,address,lat,lon,source,geocoded,pulled_at_az",
     year: `eq.${YEAR}`, order: "occurred_at.desc"
   });
   let rows;
@@ -195,10 +212,11 @@ async function loadCrimes() {
 
   const pts = [];
   const tbody = document.getElementById("rows");
-  let newest = null, oldest = null;
+  let newest = null, oldest = null, newestPull = null;
   for (const r of rows) {
     const t = r.occurred_at_az;
     if (t) { if (!newest || t > newest) newest = t; if (!oldest || t < oldest) oldest = t; }
+    if (r.pulled_at_az && (!newestPull || r.pulled_at_az > newestPull)) newestPull = r.pulled_at_az;
 
     const isUA = r.source === "UAPD";
     const approx = isUA && r.geocoded === false;   // placed at campus center
@@ -214,7 +232,8 @@ async function loadCrimes() {
         `<div class="d">${fmtDate(r.occurred_at_az)}</div>` +
         `<div>${esc(r.address) || "Address withheld"}</div>` +
         `<div class="s">Ward ${esc(r.ward) || "?"}${r.neighborhood ? " · " + esc(r.neighborhood) : ""}</div>` +
-        (approx ? `<div class="approx">Approximate — placed at campus center</div>` : "")
+        (approx ? `<div class="approx">Approximate — placed at campus center</div>` : "") +
+        `<div class="case">${esc(r.id)}</div>`
       );
       rec = { marker, ward: r.ward, source: r.source };
       crimeMarkers.push(rec);
@@ -227,9 +246,10 @@ async function loadCrimes() {
     tr.innerHTML =
       `<td>${fmtDate(r.occurred_at_az)}</td>` +
       `<td class="addr">${esc(r.address) || "—"}${isUA ? `<span class="ua-badge">UA</span>` : ""}` +
-        `<span class="go-map"><span class="go-map-txt">View on map </span>↗</span></td>` +
+      `<span class="go-map"><span class="go-map-txt">View on map </span>↗</span></td>` +
       `<td><span class="ward-pill" style="background:${wardColor(r.ward)};color:#fff">${esc(r.ward) || "?"}</span></td>` +
-      `<td>${esc(r.neighborhood) || "—"}</td>`;
+      `<td>${esc(r.neighborhood) || "—"}</td>` +
+      `<td class="case-cell">${esc(r.id) || "—"}</td>`;
     if (rec) tr.onclick = () => goToMarker(rec);       // click the row → its dot
     tbody.appendChild(tr);
   }
@@ -239,6 +259,7 @@ async function loadCrimes() {
   updateHeader(null);
   document.getElementById("from").textContent = fmtDay(oldest, false);
   document.getElementById("through").textContent = fmtDay(newest, true);
+  setDatasetModified(newestPull);  // keep the JSON-LD "last updated" date honest
   if (pts.length) map.fitBounds(pts, { padding: [40, 40] });
   setStatus(null);
 }
@@ -252,8 +273,8 @@ const SOURCES = [
     key: "reported_2026", live: true, method: ["API", "ArcGIS"],
     name: "Tucson Police Department: Reported Crimes",
     desc: `The City of Tucson's official open-data crime layer, filtered to bicycle ` +
-          `larceny (offense code <span class="code">0606</span>). This is the primary ` +
-          `source for current-year thefts shown on the map.`,
+      `larceny (offense code <span class="code">0606</span>). This is the primary ` +
+      `source for current-year thefts shown on the map.`,
     coverage: "Jan 2026 to present",
     cadence: "Source updates ~daily; pulled daily at 5:00 AM AZ",
     endpoint: "https://services3.arcgis.com/9coHY2fvuFjG9HQX/arcgis/rest/services/TPDOpenDataReportedCrimes2026/FeatureServer/0"
@@ -262,8 +283,8 @@ const SOURCES = [
     key: "uapd", live: true, method: ["Scraper", "HTML"],
     name: "University of Arizona Police Department: Daily Activity Log",
     desc: `The University of Arizona Police Department's Clery Act daily crime and ` +
-          `safety log for the campus area. Scraped, filtered to bicycle larceny, then ` +
-          `geocoded to campus locations.`,
+      `safety log for the campus area. Scraped, filtered to bicycle larceny, then ` +
+      `geocoded to campus locations.`,
     coverage: "2019 to present",
     cadence: "Posted daily; scraped daily at 5:00 AM AZ",
     endpoint: "https://uapd.arizona.edu/public-information/uapd-daily-activity-log"
@@ -272,7 +293,7 @@ const SOURCES = [
     key: "incidents_history", live: false, method: ["API", "ArcGIS"],
     name: "Tucson Police Department: Incident Records (2018 to 2025)",
     desc: `Tucson Police incident records by year, used for the historical ` +
-          `bicycle-theft trend. Backfilled once from the annual open-data layers.`,
+      `bicycle-theft trend. Backfilled once from the annual open-data layers.`,
     coverage: "2018 to 2025",
     cadence: "Static; backfilled once",
     endpoint: "https://gis.tucsonaz.gov/arcgis/rest/services/PublicMaps/OpenData_PublicSafety/MapServer (year layers 40, 48, 54, 69, 71, 78, 80, 81)"
@@ -281,8 +302,8 @@ const SOURCES = [
     key: "incidents_45day", live: true, method: ["API", "ArcGIS"],
     name: "Tucson Police Department: 45-Day Incidents",
     desc: `The rolling 45-day window of Tucson Police incident records. Kept as a ` +
-          `backup to fill any gaps if the primary Reported Crimes source falls behind ` +
-          `or drops rows. Stored but not shown on the map, and used as a freshness signal.`,
+      `backup to fill any gaps if the primary Reported Crimes source falls behind ` +
+      `or drops rows. Stored but not shown on the map, and used as a freshness signal.`,
     coverage: "Rolling last 45 days",
     cadence: "Updated daily; pulled daily at 5:00 AM AZ",
     endpoint: "https://gis.tucsonaz.gov/arcgis/rest/services/PublicMaps/OpenData_PublicSafety/MapServer/42"
@@ -291,8 +312,8 @@ const SOURCES = [
     key: "cfs_bike", live: true, method: ["API", "ArcGIS"],
     name: "Tucson Police Department: Calls for Service",
     desc: `The preliminary police dispatch feed (about a two-day lag), filtered to ` +
-          `bicycle-related calls. Kept to catch recent thefts that have not yet appeared ` +
-          `in the primary Reported Crimes source. Stored but not shown on the map.`,
+      `bicycle-related calls. Kept to catch recent thefts that have not yet appeared ` +
+      `in the primary Reported Crimes source. Stored but not shown on the map.`,
     coverage: "Rolling last 45 days",
     cadence: "Updated daily (~2-day lag); pulled daily",
     endpoint: "https://gis.tucsonaz.gov/arcgis/rest/services/PublicMaps/OpenData_PublicSafety/MapServer/41"
@@ -301,8 +322,8 @@ const SOURCES = [
     key: "geocoding", live: true, method: ["Geocoder"],
     name: "Address Geocoding",
     desc: `Address-to-coordinate lookups from the U.S. Census geocoder and ` +
-          `OpenStreetMap, plus manual overrides for campus locations the geocoders ` +
-          `cannot place.`,
+      `OpenStreetMap, plus manual overrides for campus locations the geocoders ` +
+      `cannot place.`,
     coverage: "All source addresses",
     cadence: "Runs after each scrape; new addresses only",
     endpoint: "https://geocoding.geo.census.gov/geocoder/locations/onelineaddress · https://nominatim.openstreetmap.org/search",
@@ -312,7 +333,7 @@ const SOURCES = [
     key: "wards", live: false, method: ["Reference"],
     name: "Tucson City Council Ward Boundaries",
     desc: `Council ward boundaries used to color and filter the map. A static ` +
-          `reference layer from Pima County open data.`,
+      `reference layer from Pima County open data.`,
     coverage: "Current boundaries",
     cadence: "Static reference",
     endpoint: "https://gisopendata.pima.gov/datasets/PimaMaps::wards-city-of-tucson.geojson",
@@ -345,8 +366,10 @@ async function loadSources() {
   const byKey = Object.fromEntries(rows.map(r => [r.source_key, r]));
 
   document.getElementById("src-asof").textContent = "as of " +
-    new Date().toLocaleString("en-US", { timeZone: "America/Phoenix",
-      month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }) + " AZ";
+    new Date().toLocaleString("en-US", {
+      timeZone: "America/Phoenix",
+      month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit"
+    }) + " AZ";
 
   let staleCount = 0;
   document.getElementById("src-cards").innerHTML = SOURCES.map(src => {
