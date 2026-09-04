@@ -108,7 +108,12 @@ document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
 
 // ---- table row → its dot on the map -------------------------------------
 function goToMarker(rec) {
-  track("row_to_map", { source: rec.source, ward: rec.ward });  // custom event: table row -> dot
+  track("row_to_map", {                                         // custom event: table row -> dot
+    source: rec.source,
+    ward: rec.ward,                                            // ward of the clicked row
+    filter_active: selectedWard != null,                      // was a ward filter applied?
+    filtered_ward: selectedWard || undefined                  // if so, which ward
+  });
   show("map");
   if (!crimesLayer.hasLayer(rec.marker)) crimesLayer.addLayer(rec.marker);
   setTimeout(() => {                                   // after the map re-sizes
