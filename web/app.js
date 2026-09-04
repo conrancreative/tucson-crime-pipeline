@@ -75,7 +75,11 @@ function updateHeader(ward) {
 function selectWard(ward, member, layer) {
   if (selectedWard === ward) { resetSelection(); return; }   // click again to deselect
   selectedWard = ward;
-  track("ward_filter", { ward });                            // custom event: ward selected
+  track("ward_filter", {                                     // custom event: ward selected
+    ward,
+    council_member: member || undefined,
+    theft_count: crimeMarkers.filter(m => m.ward === ward).length
+  });
   const b = layer.getBounds();
   map.setView(b.getCenter(), Math.min(map.getBoundsZoom(b) + 1, 18));   // fit, then a step closer
   applyMapFilter(ward); applyTableFilter(ward); updateHeader(ward);
