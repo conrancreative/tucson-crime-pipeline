@@ -1,0 +1,211 @@
+/* ============================================================
+   Tailwind entry / source of truth for the site's styling.
+   The compiled output is web/styles.css (generated — do NOT edit
+   that file by hand; run `npm run build` or `npm run dev`).
+
+   Design tokens live in the @theme block (they drive both the
+   Tailwind utilities used in index.html AND the component CSS below).
+   The static page structure is expressed as utility classes in the
+   markup; everything the JS generates (map popups, table rows,
+   Sources cards) or that must override Leaflet stays here as
+   component CSS.
+   ============================================================ */
+
+@import "tailwindcss" source(none);
+@source "../web/index.html";
+@source "../web/app.js";
+
+@theme {
+  --color-bg: #ffffff;
+  --color-panel: #ffffff;
+  --color-ink: #1a1a1a;
+  --color-ink-2: #6b7280;
+  --color-ink-3: #9ca3af;
+  --color-line: #e5e7eb;
+  --color-inset: #f8fafc;
+  --color-accent: #e8833a;      /* the only real color: theft dots */
+  --color-ua: #ab0520;          /* UA cardinal red */
+  --color-ok: #16a34a;
+  --color-ok-soft: #dcfce7;
+  --color-warn: #b45309;
+  --color-warn-dot: #d97706;    /* stale > 48h */
+  --color-warn-soft: #fef3c7;
+
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* ============================================================
+   App shell + non-Preflight resets. Lock scrolling on BOTH html and
+   body (iOS scrolls the documentElement), and size the shell to a
+   JS-measured visible height (--app-height) since iOS miscomputes
+   100vh/100dvh at initial load.
+   ============================================================ */
+html, body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+body {
+  margin: 0;
+  height: 100dvh;                     /* fallback before JS runs */
+  height: var(--app-height, 100dvh);  /* exact visible height, set in JS (reliable on iOS) */
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--color-ink);
+  background: var(--color-bg);
+  display: flex;
+  flex-direction: column;
+}
+
+/* tabs (JS toggles .on) */
+.tab {
+  font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  background: none; border: 0; color: var(--color-ink-2);
+  padding: 6px 12px; border-radius: 7px;
+}
+.tab.on { background: #f3f4f6; color: var(--color-ink); }
+
+/* subbar meta (the count/date line; <b> and #split are JS-written) */
+.meta b { color: var(--color-ink); font-variant-numeric: tabular-nums; }
+#split .ua-tag { color: #ab0520; }   /* UA count in cardinal, matching UA dots */
+#reset {
+  font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+  background: var(--color-ink); color: #fff; border: 0; border-radius: 999px;
+  padding: 5px 11px; display: inline-flex; align-items: center; gap: 7px;
+}
+#reset .x { opacity: .8; }
+
+.view { flex: 1; min-height: 0; display: none; }
+.view.active { display: flex; }
+#view-map { position: relative; }
+#map { flex: 1; background: #f4f4f4; }
+
+/* map: desaturate the basemap so only the dots/wards carry color.
+   Tiles live in .leaflet-tile-pane; markers & ward polygons are in other
+   panes, so they stay in color. */
+.leaflet-tile-pane { filter: grayscale(1) brightness(1.06) contrast(0.9); }
+.leaflet-container { background: #f4f4f4; }
+.ward-label {
+  background: none; border: 0; box-shadow: none;
+  font-size: 45px; font-weight: 800; line-height: 1; pointer-events: none;
+  text-shadow: 0 0 4px #fff, 0 0 4px #fff;
+}
+.leaflet-popup-content { font-size: 13px; line-height: 1.5; margin: 10px 12px; }
+.leaflet-popup-content .d { font-weight: 700; }
+.leaflet-popup-content .s { color: var(--color-ink-2); }
+/* UA (University of Arizona PD) source flag — small, full cardinal (matches the dot) */
+.leaflet-popup-content .src-ua {
+  color: #ab0520; font-weight: 600; font-size: 10px;
+  text-transform: uppercase; letter-spacing: .06em; margin-bottom: 2px;
+}
+.leaflet-popup-content .approx { color: var(--color-ink-2); font-style: italic; }
+.ua-badge {
+  display: inline-block; background: #ab0520; color: #fff; font-size: 10px;
+  font-weight: 700; letter-spacing: .04em; padding: 1px 5px; border-radius: 4px;
+  vertical-align: middle; margin-left: 6px;
+}
+
+#status {
+  position: absolute; z-index: 500; top: 14px; left: 50%; transform: translateX(-50%);
+  background: #fff; border: 1px solid var(--color-line); box-shadow: 0 2px 12px rgba(0,0,0,.08);
+  padding: 8px 14px; border-radius: 8px; font-size: 13px; color: var(--color-ink-2);
+}
+#status.err { border-color: #e0b4a4; color: #a23f22; }
+
+/* table */
+#view-table { overflow: auto; }
+#view-table.active { display: block; }   /* block, not flex — else tall table spreads rows */
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+thead th {
+  position: sticky; top: 0; background: #fff; text-align: left;
+  font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--color-ink-2);
+  font-weight: 600; padding: 10px 20px; border-bottom: 1px solid var(--color-line);
+}
+tbody td { padding: 10px 20px; border-bottom: 1px solid #f1f2f4; white-space: nowrap; }
+tbody td.addr { white-space: normal; }
+tbody tr:hover { background: #fafafa; }
+/* rows are clickable → jump to the dot on the map. Keep it clutter-free:
+   the hint only appears on hover (desktop); on touch it stays faintly visible. */
+tbody tr { cursor: pointer; }
+.go-map {
+  color: var(--color-ink-2); font-size: 11px; font-weight: 600; white-space: nowrap;
+  margin-left: 8px; opacity: 0; transition: opacity .12s;
+}
+tbody tr:hover .go-map { opacity: .7; }
+@media (hover: none) { .go-map { opacity: .5; } }
+.ward-pill {
+  display: inline-block; min-width: 22px; text-align: center;
+  background: #f3f4f6; border-radius: 5px; padding: 1px 6px; font-weight: 600; font-size: 12px;
+}
+a { color: var(--color-accent); }
+
+/* ---- Data Sources tab ---- */
+#view-sources.active { display: block; overflow: auto; }
+.sources-wrap { max-width: 720px; margin: 0 auto; padding: 22px 20px 40px; }
+.src-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.src-title { font-size: 18px; font-weight: 700; letter-spacing: -.02em; margin: 0; }
+.src-asof { color: var(--color-ink-3); font-size: 12px; }
+.src-overall { display: inline-flex; align-items: center; gap: 8px; margin: 12px 0 20px;
+  font-size: 13px; color: var(--color-ink-2); }
+.src-overall .pip { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.src-overall.ok .pip   { background: var(--color-ok);       box-shadow: 0 0 0 3px var(--color-ok-soft); }
+.src-overall.warn .pip { background: var(--color-warn-dot); box-shadow: 0 0 0 3px var(--color-warn-soft); }
+.src-overall b { color: var(--color-ink); font-weight: 600; }
+
+.src-cards { display: flex; flex-direction: column; gap: 14px; }
+.src-card { background: var(--color-panel); border: 1px solid var(--color-line); border-radius: 14px;
+  padding: 20px 22px; box-shadow: 0 1px 2px rgba(16,24,40,.04), 0 10px 28px rgba(16,24,40,.04); }
+.src-card-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.src-name { display: flex; align-items: center; gap: 11px; min-width: 0; }
+.src-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.src-dot.ok   { background: var(--color-ok);       box-shadow: 0 0 0 3px var(--color-ok-soft); }
+.src-dot.warn { background: var(--color-warn-dot); box-shadow: 0 0 0 3px var(--color-warn-soft); }
+.src-name h3 { font-size: 15.5px; font-weight: 650; letter-spacing: -.01em; margin: 0; }
+.src-chip { flex: none; font-size: 11px; font-weight: 600; letter-spacing: .03em; color: var(--color-ink-2);
+  background: #f1f2f4; border-radius: 999px; padding: 4px 10px; white-space: nowrap; }
+.src-chip .sep { color: var(--color-ink-3); margin: 0 5px; }
+.src-desc { margin: 11px 0 0; color: var(--color-ink-2); font-size: 13.5px; line-height: 1.55; }
+.src-desc .code { font-family: var(--font-mono); font-size: 12px; color: var(--color-ink); background: var(--color-inset);
+  border: 1px solid var(--color-line); border-radius: 5px; padding: 0 4px; }
+.src-meta { display: flex; flex-wrap: wrap; gap: 10px 30px; margin-top: 15px; }
+.src-meta .lbl { display: block; font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--color-ink-3); font-weight: 600; margin-bottom: 2px; }
+.src-meta .val { font-size: 13px; color: var(--color-ink); }
+.src-endpoint { display: flex; align-items: flex-start; gap: 8px; margin-top: 15px; background: var(--color-inset);
+  border: 1px solid var(--color-line); border-radius: 9px; padding: 9px 11px; font-family: var(--font-mono);
+  font-size: 12px; line-height: 1.5; color: var(--color-ink-2); }
+.src-endpoint .k { color: var(--color-ink-3); flex: none; }
+.src-endpoint .u { overflow-wrap: anywhere; }        /* wrap long URLs so they show in full */
+.src-stats { display: flex; margin-top: 17px; padding-top: 16px; border-top: 1px solid var(--color-line); }
+.src-stat { flex: 1; }
+.src-stat + .src-stat { padding-left: 20px; border-left: 1px solid var(--color-line); }
+.src-stat .lbl { display: block; font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--color-ink-3); font-weight: 600; margin-bottom: 4px; }
+.src-stat .big { font-size: 15px; font-weight: 650; color: var(--color-ink); font-variant-numeric: tabular-nums; }
+.src-stat .az { color: var(--color-ink-3); font-weight: 500; }
+.src-stat .warn { display: block; color: var(--color-warn); font-weight: 600; font-size: 11.5px; margin-top: 3px; }
+
+/* ---- mobile ---- */
+@media (max-width: 640px) {
+  .sources-wrap { padding: 16px 14px 32px; }
+  .src-card { padding: 16px 16px; }
+  .tab { padding: 8px 14px; }               /* larger tap targets */
+
+  /* table → stacked cards (no horizontal scroll) */
+  #view-table thead { display: none; }
+  #view-table table, #view-table tbody, #view-table tr, #view-table td { display: block; }
+  #view-table tr { padding: 11px 16px; border-bottom: 1px solid var(--color-line); position: relative; }
+  #view-table td { padding: 0; border: 0; white-space: normal; }
+  #view-table td:nth-child(1) { font-weight: 600; padding-right: 42px; }   /* date */
+  #view-table td:nth-child(2) { color: var(--color-ink); margin-top: 1px; }      /* address */
+  #view-table td:nth-child(3) { position: absolute; top: 11px; right: 16px; }  /* ward pill */
+  #view-table td:nth-child(4) { color: var(--color-ink-2); font-size: 12.5px; margin-top: 1px;
+                                padding-right: 24px; }                        /* neighborhood */
+
+  /* no hover on touch → show a persistent, muted ↗ on the right edge as the
+     "tap to view on map" cue (native disclosure pattern); hide the label. */
+  #view-table .go-map-txt { display: none; }
+  #view-table td .go-map {
+    position: absolute; right: 14px; bottom: 11px; margin: 0;
+    opacity: .6; font-size: 16px; color: var(--color-ink-2);
+  }
+}
