@@ -95,20 +95,25 @@ def main():
     hit, tot = cur.fetchone()
     print(f"Done. Cache now holds {tot} addresses; {hit} matched to coordinates.")
 
-    # rebuild the UA bike mart now that new addresses have coordinates
-    try:
-        cur.execute("refresh materialized view concurrently mart_uapd_bike")
-        conn.commit()
-        print("Refreshed mart_uapd_bike.")
-    except psycopg2.Error:
-        conn.rollback()
+    # Rebuild the marts now that new UAPD rows are scraped + geocoded. This is
+    # the LAST ingest step, so refresh mart_bike_crimes / mart_bike_stats here
+    # too -- the earlier incidents/reported steps refresh them BEFORE the UAPD
+    # data exists, so without this new UAPD thefts wouldn't reach the map until
+    # the next day's run.
+    for mv in ("mart_uapd_bike", "mart_bike_crimes", "mart_bike_stats"):
         try:
-            cur.execute("refresh materialized view mart_uapd_bike")
+            cur.execute(f"refresh materialized view concurrently {mv}")
             conn.commit()
-            print("Refreshed mart_uapd_bike.")
-        except psycopg2.Error as e:
+            print(f"Refreshed {mv} (concurrently).")
+        except psycopg2.Error:
             conn.rollback()
-            print(f"  (mart_uapd_bike refresh skipped: {e})")
+            try:
+                cur.execute(f"refresh materialized view {mv}")
+                conn.commit()
+                print(f"Refreshed {mv}.")
+            except psycopg2.Error as e:
+                conn.rollback()
+                print(f"  ({mv} refresh skipped: {str(e).strip()})")
 
     cur.close()
     conn.close()
