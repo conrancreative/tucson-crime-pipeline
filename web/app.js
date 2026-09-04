@@ -13,6 +13,10 @@ setAppHeight();
 ["resize", "orientationchange", "pageshow"].forEach(e => window.addEventListener(e, setAppHeight));
 
 const apiHeaders = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` };
+
+// push a custom event to GTM's dataLayer (safe no-op if GTM is blocked/absent)
+const track = (event, props = {}) =>
+  (window.dataLayer = window.dataLayer || []).push({ event, ...props });
 // bigger, easier-to-tap dots on phones (20px diameter, slightly translucent so
 // overlaps read better) vs other screens (16px)
 const IS_MOBILE = window.matchMedia("(max-width: 640px)").matches;
@@ -71,6 +75,7 @@ function updateHeader(ward) {
 function selectWard(ward, member, layer) {
   if (selectedWard === ward) { resetSelection(); return; }   // click again to deselect
   selectedWard = ward;
+  track("ward_filter", { ward });                            // custom event: ward selected
   const b = layer.getBounds();
   map.setView(b.getCenter(), Math.min(map.getBoundsZoom(b) + 1, 18));   // fit, then a step closer
   applyMapFilter(ward); applyTableFilter(ward); updateHeader(ward);
@@ -92,10 +97,14 @@ function show(view) {
   document.querySelector(".subbar").style.display = view === "sources" ? "none" : "";
   if (view === "map") setTimeout(() => map.invalidateSize(), 0);
 }
-document.querySelectorAll(".tab").forEach(t => t.onclick = () => show(t.dataset.view));
+document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
+  track("tab_view", { tab: t.dataset.view });   // custom event: which tab was opened
+  show(t.dataset.view);
+});
 
 // ---- table row → its dot on the map -------------------------------------
 function goToMarker(rec) {
+  track("row_to_map", { source: rec.source, ward: rec.ward });  // custom event: table row -> dot
   show("map");
   if (!crimesLayer.hasLayer(rec.marker)) crimesLayer.addLayer(rec.marker);
   setTimeout(() => {                                   // after the map re-sizes
