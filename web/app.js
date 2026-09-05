@@ -461,11 +461,11 @@ async function loadSources() {
   } catch (_) { /* leave timestamps blank if unreachable */ }
   const byKey = Object.fromEntries(rows.map(r => [r.source_key, r]));
 
-  document.getElementById("src-asof").textContent = "as of " +
-    new Date().toLocaleString("en-US", {
-      timeZone: "America/Phoenix",
-      month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit"
-    }) + " AZ";
+  // "as of" = the most recent data pull across all sources, not the session date
+  const latestRow = rows.reduce((a, b) =>
+    (b.last_refreshed && (!a || b.last_refreshed > a.last_refreshed)) ? b : a, null);
+  document.getElementById("src-asof").textContent =
+    latestRow ? "as of " + fmtStamp(latestRow.last_refreshed_az) + " AZ" : "";
 
   let staleCount = 0;
   document.getElementById("src-cards").innerHTML = SOURCES.map(src => {
