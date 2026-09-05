@@ -16,9 +16,13 @@
     })(window, document, 'script', 'dataLayer', 'GTM-WWPK4XFK');</script>
   <!-- End Google Tag Manager -->
 
-  <!-- track internal traffic to exlude testing-->
+  <!-- Flag internal traffic (own devices) so it can be excluded in GA4.
+       Only sets the cookie when the page is visited with ?internal=1 — otherwise
+       every visitor would be tagged internal. Once set it persists (2 years). -->
   <script>
-    document.cookie = "internal_traffic=true; max-age=63072000; path=/";
+    if (new URLSearchParams(location.search).get("internal") === "1") {
+      document.cookie = "internal_traffic=true; max-age=63072000; path=/";
+    }
   </script>
 
   <title>Interactive Bike Theft Map Data for Tucson, AZ</title>
