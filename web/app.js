@@ -51,6 +51,7 @@ const crimeMarkers = [];      // { marker, ward }
 const wardMembers = {};       // ward -> council member name (filled by loadWards)
 let allPts = [];
 let selectedWard = null;
+let currentView = "map";      // which tab is active (map starts active); set in show()
 
 function applyMapFilter(ward) {
   crimesLayer.clearLayers();
@@ -138,6 +139,7 @@ function initWardFilter() {
 
 // ---- tabs ---------------------------------------------------------------
 function show(view) {
+  currentView = view;   // remember the active tab for click-event analytics
   document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === "view-" + view));
   document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.view === view));
   // the count/date subbar + latest banner only make sense for the map & table
@@ -163,6 +165,7 @@ function goToMarker(rec, event = "row_to_map") {
   track(event, {
     source: rec.source,                                       // theft data source (TPD/UAPD)
     ward: rec.ward,                                            // ward of the clicked record
+    tab: currentView,                                         // which tab the click was made from
     filter_active: selectedWard != null,                      // was a ward filter applied?
     filtered_ward: selectedWard || "none"                  // if so, which ward
   });
