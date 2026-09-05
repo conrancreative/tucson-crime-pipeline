@@ -94,7 +94,7 @@ body {
 /* UA count in cardinal, matching UA dots */
 #reset {
   font: inherit;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 600;
   cursor: pointer;
   background: var(--color-ink);
@@ -306,7 +306,152 @@ tbody tr:hover .go-map {
   border-radius: 5px;
   padding: 1px 6px;
   font-weight: 600;
+  font-size: 10px;
+}
+
+/* table ward-filter toolbar (scrolls with the table; sticky thead stays put) */
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.ward-filter-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--color-ink-2);
+  font-weight: 600;
+}
+
+.ward-filter {
+  font: inherit;
   font-size: 12px;
+  color: var(--color-ink);
+  background: #fff;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  padding: 5px 8px;
+  cursor: pointer;
+}
+
+.ward-filter:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+/* empty state when a filtered ward has no rows */
+.table-empty {
+  padding: 32px 20px;
+  text-align: center;
+  color: var(--color-ink-2);
+  font-size: 14px;
+}
+
+/* the [hidden] attribute must win over the display rules below (author styles
+   otherwise override the UA [hidden] rule) */
+[hidden] {
+  display: none !important;
+}
+
+/* ---- banners: latest theft (above) + metrics overview --------------------
+   Stacked by default (latest on top); split 50/50 on one row above 760px. */
+.banners {
+  display: flex;
+  flex-direction: column;
+}
+
+/* large screens: app.js moves the latest-theft node into <header>, where it
+   renders as a right-aligned ticker pill; the metrics banner goes full width. */
+@media (min-width: 760px) {
+  header .latest-banner {
+    margin-left: auto;
+    /* push to the right edge of the nav */
+    align-self: center;
+    /* pill height, not the full nav height */
+    max-width: 340px;
+    /* ticker width; text truncates beyond it */
+    gap: 8px;
+    padding: 4px 12px;
+    border: 1px solid var(--color-line);
+    border-radius: 999px;
+    justify-content: flex-start;
+  }
+}
+
+/* ---- latest theft banner (accent strip) ---------------------------------
+   One line: [LATEST THEFT] date @ time · address · ward — truncates with an
+   ellipsis when tight (e.g. the ~900px split); the arrow stays visible after
+   it, always shown to signal the whole banner is a link. */
+.latest-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* centered above 450px; left-aligned on mobile */
+  gap: 8px;
+  padding: 8px 20px;
+  background: rgba(232, 131, 58, .09);
+  /* --color-accent at ~9% */
+  border-bottom: 1px solid var(--color-line);
+}
+
+.latest-banner.clickable {
+  cursor: pointer;
+}
+
+/* the info line shrinks and truncates; the arrow (flex:none) never does */
+.latest-text {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 10px;
+  color: var(--color-ink);
+}
+
+.latest-label {
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  font-weight: 700;
+  color: var(--color-accent);
+  margin-right: 3px;
+}
+
+.latest-arrow {
+  flex: none;
+  color: var(--color-accent);
+  font-weight: 600;
+  font-size: 12px;
+}
+
+@media (max-width: 640px) {
+  .table-toolbar {
+    padding: 8px 14px;
+  }
+
+  .latest-banner {
+    padding: 7px 14px;
+  }
+
+}
+
+/* smallest screens: metrics/date stack + latest banner left-aligned */
+@media (max-width: 450px) {
+
+  /* metrics banner: date section under the metrics, both centered */
+  .meta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+  }
+
+  .meta .meta-sep {
+    display: none;
+  }
 }
 
 a {
@@ -319,240 +464,240 @@ a {
   overflow: auto;
 }
 
-.sources-wrap {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 22px 20px 40px;
-}
+  .sources-wrap {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 22px 20px 40px;
+  }
 
-.src-top {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-}
+  .src-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
 
-.src-title {
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: -.02em;
-  margin: 0;
-}
+  .src-title {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    margin: 0;
+  }
 
-.src-asof {
-  color: var(--color-ink-3);
-  font-size: 12px;
-}
+  .src-asof {
+    color: var(--color-ink-3);
+    font-size: 12px;
+  }
 
-.src-overall {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin: 12px 0 20px;
-  font-size: 13px;
-  color: var(--color-ink-2);
-}
+  .src-overall {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 0 20px;
+    font-size: 13px;
+    color: var(--color-ink-2);
+  }
 
-.src-overall .pip {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex: none;
-}
+  .src-overall .pip {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex: none;
+  }
 
-.src-overall.ok .pip {
-  background: var(--color-ok);
-  box-shadow: 0 0 0 3px var(--color-ok-soft);
-}
+  .src-overall.ok .pip {
+    background: var(--color-ok);
+    box-shadow: 0 0 0 3px var(--color-ok-soft);
+  }
 
-.src-overall.warn .pip {
-  background: var(--color-warn-dot);
-  box-shadow: 0 0 0 3px var(--color-warn-soft);
-}
+  .src-overall.warn .pip {
+    background: var(--color-warn-dot);
+    box-shadow: 0 0 0 3px var(--color-warn-soft);
+  }
 
-.src-overall b {
-  color: var(--color-ink);
-  font-weight: 600;
-}
+  .src-overall b {
+    color: var(--color-ink);
+    font-weight: 600;
+  }
 
-.src-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
+  .src-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
 
-.src-card {
-  background: var(--color-panel);
-  border: 1px solid var(--color-line);
-  border-radius: 14px;
-  padding: 20px 22px;
-  box-shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 10px 28px rgba(16, 24, 40, .04);
-}
+  .src-card {
+    background: var(--color-panel);
+    border: 1px solid var(--color-line);
+    border-radius: 14px;
+    padding: 20px 22px;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 10px 28px rgba(16, 24, 40, .04);
+  }
 
-.src-card-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
+  .src-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
 
-.src-name {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  min-width: 0;
-}
+  .src-name {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-width: 0;
+  }
 
-.src-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  flex: none;
-}
+  .src-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex: none;
+  }
 
-.src-dot.ok {
-  background: var(--color-ok);
-  box-shadow: 0 0 0 3px var(--color-ok-soft);
-}
+  .src-dot.ok {
+    background: var(--color-ok);
+    box-shadow: 0 0 0 3px var(--color-ok-soft);
+  }
 
-.src-dot.warn {
-  background: var(--color-warn-dot);
-  box-shadow: 0 0 0 3px var(--color-warn-soft);
-}
+  .src-dot.warn {
+    background: var(--color-warn-dot);
+    box-shadow: 0 0 0 3px var(--color-warn-soft);
+  }
 
-.src-name h3 {
-  font-size: 15.5px;
-  font-weight: 650;
-  letter-spacing: -.01em;
-  margin: 0;
-}
+  .src-name h3 {
+    font-size: 15.5px;
+    font-weight: 650;
+    letter-spacing: -.01em;
+    margin: 0;
+  }
 
-.src-chip {
-  flex: none;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: .03em;
-  color: var(--color-ink-2);
-  background: #f1f2f4;
-  border-radius: 999px;
-  padding: 4px 10px;
-  white-space: nowrap;
-}
+  .src-chip {
+    flex: none;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .03em;
+    color: var(--color-ink-2);
+    background: #f1f2f4;
+    border-radius: 999px;
+    padding: 4px 10px;
+    white-space: nowrap;
+  }
 
-.src-chip .sep {
-  color: var(--color-ink-3);
-  margin: 0 5px;
-}
+  .src-chip .sep {
+    color: var(--color-ink-3);
+    margin: 0 5px;
+  }
 
-.src-desc {
-  margin: 11px 0 0;
-  color: var(--color-ink-2);
-  font-size: 13.5px;
-  line-height: 1.55;
-}
+  .src-desc {
+    margin: 11px 0 0;
+    color: var(--color-ink-2);
+    font-size: 13.5px;
+    line-height: 1.55;
+  }
 
-.src-desc .code {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--color-ink);
-  background: var(--color-inset);
-  border: 1px solid var(--color-line);
-  border-radius: 5px;
-  padding: 0 4px;
-}
+  .src-desc .code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--color-ink);
+    background: var(--color-inset);
+    border: 1px solid var(--color-line);
+    border-radius: 5px;
+    padding: 0 4px;
+  }
 
-.src-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 30px;
-  margin-top: 15px;
-}
+  .src-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 30px;
+    margin-top: 15px;
+  }
 
-.src-meta .lbl {
-  display: block;
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: .06em;
-  color: var(--color-ink-3);
-  font-weight: 600;
-  margin-bottom: 2px;
-}
+  .src-meta .lbl {
+    display: block;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--color-ink-3);
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
 
-.src-meta .val {
-  font-size: 13px;
-  color: var(--color-ink);
-}
+  .src-meta .val {
+    font-size: 13px;
+    color: var(--color-ink);
+  }
 
-.src-endpoint {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin-top: 15px;
-  background: var(--color-inset);
-  border: 1px solid var(--color-line);
-  border-radius: 9px;
-  padding: 9px 11px;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--color-ink-2);
-}
+  .src-endpoint {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-top: 15px;
+    background: var(--color-inset);
+    border: 1px solid var(--color-line);
+    border-radius: 9px;
+    padding: 9px 11px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--color-ink-2);
+  }
 
-.src-endpoint .k {
-  color: var(--color-ink-3);
-  flex: none;
-}
+  .src-endpoint .k {
+    color: var(--color-ink-3);
+    flex: none;
+  }
 
-.src-endpoint .u {
-  overflow-wrap: anywhere;
-}
+  .src-endpoint .u {
+    overflow-wrap: anywhere;
+  }
 
-/* wrap long URLs so they show in full */
-.src-stats {
-  display: flex;
-  margin-top: 17px;
-  padding-top: 16px;
-  border-top: 1px solid var(--color-line);
-}
+  /* wrap long URLs so they show in full */
+  .src-stats {
+    display: flex;
+    margin-top: 17px;
+    padding-top: 16px;
+    border-top: 1px solid var(--color-line);
+  }
 
-.src-stat {
-  flex: 1;
-}
+  .src-stat {
+    flex: 1;
+  }
 
-.src-stat+.src-stat {
-  padding-left: 20px;
-  border-left: 1px solid var(--color-line);
-}
+  .src-stat+.src-stat {
+    padding-left: 20px;
+    border-left: 1px solid var(--color-line);
+  }
 
-.src-stat .lbl {
-  display: block;
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: .06em;
-  color: var(--color-ink-3);
-  font-weight: 600;
-  margin-bottom: 4px;
-}
+  .src-stat .lbl {
+    display: block;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--color-ink-3);
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
 
-.src-stat .big {
-  font-size: 15px;
-  font-weight: 650;
-  color: var(--color-ink);
-  font-variant-numeric: tabular-nums;
-}
+  .src-stat .big {
+    font-size: 15px;
+    font-weight: 650;
+    color: var(--color-ink);
+    font-variant-numeric: tabular-nums;
+  }
 
-.src-stat .az {
-  color: var(--color-ink-3);
-  font-weight: 500;
-}
+  .src-stat .az {
+    color: var(--color-ink-3);
+    font-weight: 500;
+  }
 
-.src-stat .warn {
-  display: block;
-  color: var(--color-warn);
-  font-weight: 600;
-  font-size: 11.5px;
-  margin-top: 3px;
-}
+  .src-stat .warn {
+    display: block;
+    color: var(--color-warn);
+    font-weight: 600;
+    font-size: 11.5px;
+    margin-top: 3px;
+  }
 
 /* ---- mobile ---- */
 @media (max-width: 640px) {

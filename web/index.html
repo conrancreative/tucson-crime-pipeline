@@ -107,7 +107,7 @@
   <!-- End Google Tag Manager (noscript) -->
 
   <header
-    class="flex flex-wrap items-center gap-5 border-b border-line px-5 py-3 max-[640px]:gap-2.5 max-[640px]:px-3.5 max-[640px]:py-2.5">
+    class="flex flex-wrap items-center gap-5 border-b border-line px-5 py-3 max-[640px]:gap-2.5 max-[640px]:px-3.5 max-[640px]:py-2.5 max-[450px]:flex-col max-[450px]:gap-2">
     <div class="flex items-center gap-2.5 max-[640px]:gap-1">
       <span
         class="leading-none text-[28px] max-[640px]:text-[22px] relative -top-[3px] max-[640px]:-top-[2px]">🚲</span>
@@ -120,11 +120,21 @@
     </nav>
   </header>
 
-  <div
-    class="subbar flex flex-wrap items-center justify-center gap-[14px] border-b border-line px-5 py-2.5 max-[640px]:gap-2.5 max-[640px]:px-3.5 max-[640px]:py-2">
-    <button id="reset" style="display:none"><span id="reset-label"></span> <span class="x">✕</span></button>
-    <div class="meta text-[13px] text-ink-2"><b id="count">—</b> <span id="scope">in 2026</span><span id="split"></span>
-      · from <b id="from">—</b> through <b id="through">—</b></div>
+  <!-- banners: latest theft (above) + metrics overview. Stacked by default,
+       split 50/50 on the same row above 760px. -->
+  <div class="banners">
+    <!-- latest theft banner — accent strip, populated by app.js (renderLatest) -->
+    <div id="latest" class="latest-banner" hidden></div>
+
+    <div
+      class="subbar flex flex-wrap items-center justify-center gap-[14px] border-b border-line px-5 py-2.5 max-[640px]:gap-2.5 max-[640px]:px-3.5 max-[640px]:py-2">
+      <button id="reset" style="display:none"><span id="reset-label"></span> <span class="x">✕</span></button>
+      <div class="meta text-[13px] text-ink-2">
+        <span class="metrics"><b id="count">—</b> <span id="scope">in 2026</span><span id="split"></span></span>
+        <span class="meta-sep"> · </span>
+        <span class="daterange"><b id="from">—</b> <span class="arrow">→</span> <b id="through">—</b></span>
+      </div>
+    </div>
   </div>
 
   <section id="view-map" class="view active">
@@ -133,6 +143,13 @@
   </section>
 
   <section id="view-table" class="view">
+    <div class="table-toolbar">
+      <label class="ward-filter-label" for="ward-filter">Filter by ward</label>
+      <select id="ward-filter" class="ward-filter">
+        <option value="">All wards</option>
+        <!-- Ward 1–6 options injected by app.js (initWardFilter) -->
+      </select>
+    </div>
     <table>
       <thead>
         <tr>
@@ -145,6 +162,7 @@
       </thead>
       <tbody id="rows"></tbody>
     </table>
+    <div id="table-empty" class="table-empty" hidden></div>
   </section>
 
   <section id="view-sources" class="view">
