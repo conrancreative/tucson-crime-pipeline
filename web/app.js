@@ -48,6 +48,7 @@ map.getPane("wardlabels").style.zIndex = 360;   // big ward numbers, above fills
 // ---- ward selection: click a ward → zoom in + filter to its dots --------
 const crimesLayer = L.layerGroup().addTo(map);
 const crimeMarkers = [];      // { marker, ward }
+const wardMembers = {};       // ward -> council member name (filled by loadWards)
 let allPts = [];
 let selectedWard = null;
 
@@ -72,33 +73,76 @@ function updateHeader(ward) {
     : "";
   document.getElementById("reset").style.display = ward ? "inline-flex" : "none";
 }
-function selectWard(ward, member, layer) {
-  if (selectedWard === ward) { resetSelection(); return; }   // click again to deselect
+// Show "No bike thefts in Ward N" when the table has no rows for the active ward.
+// Counts table rows (all rows), not markers (geocoded only), so an ungeocoded-only
+// ward still reads correctly.
+function renderEmptyState(ward) {
+  const empty = document.getElementById("table-empty");
+  if (!empty) return;
+  const hasRows = ward ? !!document.querySelector(`#rows tr[data-ward="${ward}"]`) : true;
+  empty.hidden = !ward || hasRows;
+  if (ward && !hasRows) empty.textContent = `No bike thefts in Ward ${ward}`;
+}
+// Shared filter core — used by both the map (selectWard) and the table dropdown.
+// `source` ("map" | "table") is passed through to the analytics event.
+function filterByWard(ward, source) {
   selectedWard = ward;
-  track("ward_filter", {                                     // custom event: ward selected
-    ward,
-    council_member: member || undefined,
-    theft_count: crimeMarkers.filter(m => m.ward === ward).length
-  });
-  const b = layer.getBounds();
-  map.setView(b.getCenter(), Math.min(map.getBoundsZoom(b) + 1, 18));   // fit, then a step closer
+  const member = wardMembers[ward];
   applyMapFilter(ward); applyTableFilter(ward); updateHeader(ward);
   document.getElementById("reset-label").textContent = `Ward ${ward}${member ? " · " + member : ""}`;
   document.getElementById("reset").style.background = wardColor(ward);  // pill matches the ward
+  const dd = document.getElementById("ward-filter");
+  if (dd) dd.value = ward;                                              // keep dropdown in sync
+  renderEmptyState(ward);
+  track("ward_filter", {                                               // custom event: ward selected
+    ward,
+    council_member: member || undefined,
+    theft_count: crimeMarkers.filter(m => m.ward === ward).length,
+    source                                                             // "map" or "table"
+  });
+}
+function selectWard(ward, member, layer) {
+  if (selectedWard === ward) { resetSelection(); return; }   // click again to deselect
+  const b = layer.getBounds();
+  map.setView(b.getCenter(), Math.min(map.getBoundsZoom(b) + 1, 18));   // fit, then a step closer
+  filterByWard(ward, "map");
 }
 function resetSelection() {
   selectedWard = null;
   applyMapFilter(null); applyTableFilter(null); updateHeader(null);
+  const dd = document.getElementById("ward-filter");
+  if (dd) dd.value = "";                                                // clear dropdown
+  renderEmptyState(null);
   if (allPts.length) map.fitBounds(allPts, { padding: [40, 40] });
 }
+// Fit the map to a ward's dots. Used when arriving on the map with a ward filter
+// applied from the table (the table dropdown filters but doesn't zoom).
+function fitToWard(ward) {
+  const pts = crimeMarkers.filter(m => m.ward === ward).map(m => m.marker.getLatLng());
+  if (pts.length) map.fitBounds(L.latLngBounds(pts), { padding: [40, 40] });
+}
 document.getElementById("reset").onclick = resetSelection;
+
+// ---- table ward-filter dropdown -----------------------------------------
+function initWardFilter() {
+  const dd = document.getElementById("ward-filter");
+  if (!dd) return;
+  ["1", "2", "3", "4", "5", "6"].forEach(w => {
+    const o = document.createElement("option");
+    o.value = w;
+    o.textContent = `Ward ${w}`;
+    dd.appendChild(o);
+  });
+  dd.onchange = () => { dd.value ? filterByWard(dd.value, "table") : resetSelection(); };
+}
 
 // ---- tabs ---------------------------------------------------------------
 function show(view) {
   document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === "view-" + view));
   document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.view === view));
-  // the count/date subbar only makes sense for the map & table
+  // the count/date subbar + latest banner only make sense for the map & table
   document.querySelector(".subbar").style.display = view === "sources" ? "none" : "";
+  document.getElementById("latest").style.display = view === "sources" ? "none" : "";
   if (view === "map") setTimeout(() => map.invalidateSize(), 0);
 }
 document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
@@ -108,13 +152,17 @@ document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
     filtered_ward: selectedWard || "none"     // if so, which ward
   });
   show(t.dataset.view);
+  // arriving on the map with a ward filter (e.g. set from the table) → center on it
+  if (t.dataset.view === "map" && selectedWard) setTimeout(() => fitToWard(selectedWard), 0);
 });
 
-// ---- table row → its dot on the map -------------------------------------
-function goToMarker(rec) {
-  track("row_to_map", {                                         // custom event: table row -> dot
-    source: rec.source,
-    ward: rec.ward,                                            // ward of the clicked row
+// ---- a record's dot on the map ------------------------------------------
+// `event` names the analytics event so we can tell where the click came from:
+// "row_to_map" (table row) vs "latest_theft_to_map" (latest-theft banner).
+function goToMarker(rec, event = "row_to_map") {
+  track(event, {
+    source: rec.source,                                       // theft data source (TPD/UAPD)
+    ward: rec.ward,                                            // ward of the clicked record
     filter_active: selectedWard != null,                      // was a ward filter applied?
     filtered_ward: selectedWard || "none"                  // if so, which ward
   });
@@ -164,6 +212,48 @@ function setDatasetModified(az) {
   } catch (_) { /* leave the static JSON-LD as-is if anything goes wrong */ }
 }
 
+// Latest-theft banner. `latest` is { r, rec } for the most recent row (rows come
+// ordered newest-first). Shows date @ time · address · ward, and links to the dot
+// when the row is geocoded (has a marker); otherwise shows info without the link.
+function fmtTime(az) {
+  if (!az) return "";
+  const d = new Date(az.replace(" ", "T"));
+  if (isNaN(d)) return "";
+  // "10:00 AM" -> "10:00AM" to match the compact banner format
+  return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).replace(/\s/g, "");
+}
+function renderLatest(latest) {
+  const el = document.getElementById("latest");
+  if (!el || !latest || !latest.r) return;
+  const { r, rec } = latest;
+  const time = fmtTime(r.occurred_at_az);
+  const when = esc(fmtDay(r.occurred_at_az, true)) + (time ? ` @ ${esc(time)}` : "");
+  const addr = esc(r.address) || "Address withheld";
+  el.innerHTML =
+    `<span class="latest-text">` +
+    `<span class="latest-label">Latest theft</span>` +
+    `${when} · ${addr} · Ward ${esc(r.ward) || "?"}` +
+    `</span>` +
+    (rec ? `<span class="latest-arrow" aria-hidden="true">↗</span>` : "");
+  el.onclick = rec ? () => goToMarker(rec, "latest_theft_to_map") : null;   // banner clickable, like table rows
+  el.classList.toggle("clickable", !!rec);
+  el.hidden = false;
+}
+
+// On large screens the latest-theft banner lives in the header as a right-aligned
+// ticker pill; below 794px (magic number) it sits above the metrics banner. CSS can't reparent,
+// so move the same node between the two containers at the breakpoint
+const bigScreen = window.matchMedia("(min-width: 794px)");
+function placeLatestBanner(mq) {
+  const latest = document.getElementById("latest");
+  const header = document.querySelector("header");
+  const banners = document.querySelector(".banners");
+  if (!latest || !header || !banners) return;
+  if (mq.matches) header.appendChild(latest);                     // pill in the nav
+  else banners.insertBefore(latest, banners.firstChild);          // strip above metrics
+}
+bigScreen.addEventListener("change", placeLatestBanner);
+
 // ---- ward overlays (color-coded, translucent) ---------------------------
 async function loadWards() {
   try {
@@ -171,6 +261,7 @@ async function loadWards() {
       { headers: apiHeaders });
     if (!res.ok) return;
     const wards = await res.json();
+    wards.forEach(w => { if (w.council_member) wardMembers[w.ward] = w.council_member; });
     const fc = {
       type: "FeatureCollection",
       features: wards.map(w => ({
@@ -212,7 +303,7 @@ async function loadCrimes() {
 
   const pts = [];
   const tbody = document.getElementById("rows");
-  let newest = null, oldest = null, newestPull = null;
+  let newest = null, oldest = null, newestPull = null, latest = null;
   for (const r of rows) {
     const t = r.occurred_at_az;
     if (t) { if (!newest || t > newest) newest = t; if (!oldest || t < oldest) oldest = t; }
@@ -252,11 +343,13 @@ async function loadCrimes() {
       `<td class="case-cell">${esc(r.id) || "—"}</td>`;
     if (rec) tr.onclick = () => goToMarker(rec);       // click the row → its dot
     tbody.appendChild(tr);
+    if (!latest) latest = { r, rec };   // rows are newest-first → first is the latest
   }
 
   allPts = pts;
   applyMapFilter(null);            // add all markers via the filter layer
   updateHeader(null);
+  renderLatest(latest);            // latest-theft snippet in the subbar
   document.getElementById("from").textContent = fmtDay(oldest, false);
   document.getElementById("through").textContent = fmtDay(newest, true);
   setDatasetModified(newestPull);  // keep the JSON-LD "last updated" date honest
@@ -410,6 +503,8 @@ async function loadSources() {
     : `<span class="pip"></span> <b>All ${SOURCES.length} sources</b>&nbsp;refreshed on schedule`;
 }
 
+initWardFilter();
+placeLatestBanner(bigScreen);   // position the latest banner for the current width
 loadWards();
 loadCrimes();
 loadSources();
