@@ -120,6 +120,7 @@
     <nav class="flex gap-1">
       <button class="tab on" data-view="map">Map</button>
       <button class="tab" data-view="table">Table</button>
+      <button class="tab" data-view="about">About</button>
       <button class="tab" data-view="sources">Sources</button>
     </nav>
   </header>
@@ -179,6 +180,126 @@
       <div id="src-cards" class="src-cards"></div>
     </div>
   </section>
+
+  <!-- About / FAQ: static, crawlable content. This is the page's indexable
+       prose (the map/table are JS-rendered, so search engines see little else).
+       Figures are a hand-set baseline; keep them roughly current on deploy. -->
+  <section id="view-about" class="view">
+    <div class="about-wrap">
+      <h2>About the Tucson bike theft map</h2>
+      <p>
+        This is a live, interactive map of <strong>reported bicycle thefts in Tucson, Arizona</strong>.
+        Since January 2018, more than <strong>7,200 bike thefts</strong> have been reported to the
+        Tucson Police Department and the University of Arizona Police Department — roughly
+        <strong>1,000 stolen bikes every year</strong>. Each dot is a reported theft; use the
+        <a href="#" data-view-link="map">map</a> and <a href="#" data-view-link="table">table</a>
+        to explore where bikes are stolen, filter by city council ward, and see the most recent reports.
+        The data updates daily.
+      </p>
+
+      <div class="about-stats" aria-label="Key bike theft statistics for Tucson">
+        <div class="about-stat"><span class="num">7,200+</span><span class="lbl">thefts reported since 2018</span></div>
+        <div class="about-stat"><span class="num">~1,000</span><span class="lbl">stolen bikes per year</span></div>
+        <div class="about-stat"><span class="num">Ward 6</span><span class="lbl">top hotspot (U of A area)</span></div>
+        <div class="about-stat"><span class="num">Daily</span><span class="lbl">data updates</span></div>
+      </div>
+
+      <h2>Frequently asked questions</h2>
+
+      <h3>How many bikes are stolen in Tucson?</h3>
+      <p>
+        More than <strong>7,200 bicycles have been reported stolen in Tucson since 2018</strong> —
+        about 1,000 per year in recent years. The real number is higher, because many bike thefts
+        are never reported to police.
+      </p>
+
+      <h3>Where are bikes stolen most in Tucson?</h3>
+      <p>
+        The <strong>University of Arizona campus and central Tucson see the most bike thefts</strong>.
+        Ward 6 records the most reports by far, followed by Ward 3. Neighborhoods around the university —
+        West University, Pie Allen, Sam Hughes and Blenman-Elm — are persistent hotspots.
+      </p>
+
+      <h3>What should I do if my bike is stolen in Tucson?</h3>
+      <p>
+        File a police report right away — <strong>Tucson Police</strong> online or by calling 311, or
+        <strong>University of Arizona Police</strong> if it was taken on campus. Record your bike's
+        serial number, report it stolen on <a href="https://bikeindex.org/" rel="nofollow noopener"
+        target="_blank">Bike Index</a>, and watch OfferUp, Facebook Marketplace and local pawn shops for it.
+      </p>
+
+      <h3>How can I avoid getting my bike stolen?</h3>
+      <p>
+        Use a sturdy <strong>U-lock</strong> rather than a cable lock, and secure both the frame and a
+        wheel to a fixed rack. Park in well-lit, visible spots, avoid leaving a bike locked outside
+        overnight — especially near campus — and register your serial number on Bike Index so a recovered
+        bike can be returned to you.
+      </p>
+
+      <h3>Where does this data come from?</h3>
+      <p>
+        Reports come from <strong>Tucson Police Department open crime data</strong> (bicycle larceny) and
+        the <strong>University of Arizona Police Department daily activity log</strong>, geocoded to map
+        coordinates and refreshed every day. See the <a href="#" data-view-link="sources">Sources</a> tab
+        for the exact feeds and their freshness.
+      </p>
+
+      <p class="about-foot">
+        Built by <a href="https://thomaspconran.com/" rel="noopener" target="_blank">Thomas Conran</a>.
+        Figures reflect reported thefts only and are approximate; see the live map and table for exact counts.
+      </p>
+    </div>
+  </section>
+
+  <!-- FAQ structured data mirroring the visible Q&A above -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How many bikes are stolen in Tucson?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "More than 7,200 bicycles have been reported stolen in Tucson since 2018 — about 1,000 per year in recent years. The real number is higher, because many bike thefts are never reported to police."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Where are bikes stolen most in Tucson?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The University of Arizona campus and central Tucson see the most bike thefts. Ward 6 records the most reports by far, followed by Ward 3. Neighborhoods around the university — West University, Pie Allen, Sam Hughes and Blenman-Elm — are persistent hotspots."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What should I do if my bike is stolen in Tucson?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "File a police report right away — Tucson Police online or by calling 311, or University of Arizona Police if it was taken on campus. Record your bike's serial number, report it stolen on Bike Index, and watch OfferUp, Facebook Marketplace and local pawn shops for it."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How can I avoid getting my bike stolen in Tucson?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Use a sturdy U-lock rather than a cable lock, and secure both the frame and a wheel to a fixed rack. Park in well-lit, visible spots, avoid leaving a bike locked outside overnight — especially near campus — and register your serial number on Bike Index."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Where does the Tucson bike theft data come from?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Reports come from Tucson Police Department open crime data (bicycle larceny) and the University of Arizona Police Department daily activity log, geocoded to map coordinates and refreshed every day."
+        }
+      }
+    ]
+  }
+  </script>
 
   <!-- config: safe to edit; must load before app.js (which reads these) -->
   <script>

@@ -143,8 +143,9 @@ function show(view) {
   document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === "view-" + view));
   document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.view === view));
   // the count/date subbar + latest banner only make sense for the map & table
-  document.querySelector(".subbar").style.display = view === "sources" ? "none" : "";
-  document.getElementById("latest").style.display = view === "sources" ? "none" : "";
+  const chrome = view === "sources" || view === "about";
+  document.querySelector(".subbar").style.display = chrome ? "none" : "";
+  document.getElementById("latest").style.display = chrome ? "none" : "";
   if (view === "map") setTimeout(() => map.invalidateSize(), 0);
 }
 document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
@@ -157,6 +158,13 @@ document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
   // arriving on the map with a ward filter (e.g. set from the table) → center on it
   if (t.dataset.view === "map" && selectedWard) setTimeout(() => fitToWard(selectedWard), 0);
 });
+
+// In-content tab links (the About copy points at map/table/sources). Real <a>
+// hrefs for crawlers, but intercept the click to switch tabs without navigating.
+document.querySelectorAll("[data-view-link]").forEach(a => a.addEventListener("click", e => {
+  e.preventDefault();
+  show(a.dataset.viewLink);
+}));
 
 // ---- a record's dot on the map ------------------------------------------
 // `event` names the analytics event so we can tell where the click came from:
