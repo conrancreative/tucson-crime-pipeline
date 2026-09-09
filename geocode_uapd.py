@@ -115,6 +115,23 @@ def main():
                 conn.rollback()
                 print(f"  ({mv} refresh skipped: {str(e).strip()})")
 
+    # Heartbeat: record that the geocode step ran (with how many new addresses it
+    # found), so the Data Sources tab's "last refreshed" reflects the run, not the
+    # last time a brand-new address happened to grow the cache. Degrades quietly if
+    # the table isn't present (e.g. sql/16 not yet applied).
+    try:
+        cur.execute("""
+            insert into ingest_heartbeat (step, ran_at, note)
+            values ('geocoding', now(), %s)
+            on conflict (step) do update
+              set ran_at = excluded.ran_at, note = excluded.note
+        """, (f"{len(todo)} new / {tot} cached",))
+        conn.commit()
+        print("Heartbeat recorded (geocoding).")
+    except psycopg2.Error as e:
+        conn.rollback()
+        print(f"  (heartbeat skipped: {str(e).strip()})")
+
     cur.close()
     conn.close()
 

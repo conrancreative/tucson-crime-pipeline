@@ -42,8 +42,15 @@ select 'cfs_bike',
 union all
 select 'geocoding',
   null::date,
-  (select max(geocoded_at) from geocode_cache),
-  (select max(geocoded_at) at time zone 'America/Phoenix' from geocode_cache),
+  -- "last refreshed" = when the geocode step last RAN, not when the cache last
+  -- grew. The cache only gains a row for a brand-new distinct address, so on a
+  -- small campus footprint max(geocoded_at) freezes for days while the step
+  -- runs fine daily. Read the heartbeat; fall back to max(geocoded_at) until
+  -- the first heartbeat is written (or if the table is absent locally).
+  coalesce((select ran_at from ingest_heartbeat where step = 'geocoding'),
+           (select max(geocoded_at) from geocode_cache)),
+  coalesce((select ran_at from ingest_heartbeat where step = 'geocoding'),
+           (select max(geocoded_at) from geocode_cache)) at time zone 'America/Phoenix',
   (select count(*)::int from geocode_cache)
 union all
 select 'wards',
