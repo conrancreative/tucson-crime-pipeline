@@ -1,5 +1,5 @@
 -- ============================================================================
--- 12_geocode_overrides.sql  ·  manual lat/lon for un-geocodable campus spots
+-- 12_geocode_overrides.sql / manual lat/lon for un-geocodable campus spots
 -- ----------------------------------------------------------------------------
 -- The U.S. Census geocoder can't place a handful of campus-interior streets
 -- (University Blvd mall, James E Rogers Way, Enke Dr, National Championship Dr,
@@ -21,32 +21,32 @@ declare s text;
 begin
   if a is null then return null; end if;
   s := upper(btrim(a));
-  s := regexp_replace(s, '[.,]', '', 'g');          -- drop periods / commas
-  s := regexp_replace(s, '\s+', ' ', 'g');          -- collapse whitespace
+  s := regexp_replace(s, '[.,]', '', 'g'); -- drop periods / commas
+  s := regexp_replace(s, '\s+', ' ', 'g'); -- collapse whitespace
   -- standardize street-type suffixes
-  s := regexp_replace(s, '\y(AVENUE|AV)\y',   'AVE',  'g');
+  s := regexp_replace(s, '\y(AVENUE|AV)\y', 'AVE', 'g');
   s := regexp_replace(s, '\y(BOULEVARD|BL)\y','BLVD', 'g');
-  s := regexp_replace(s, '\ySTREET\y',        'ST',   'g');
-  s := regexp_replace(s, '\yDRIVE\y',         'DR',   'g');
-  s := regexp_replace(s, '\yROAD\y',          'RD',   'g');
-  s := regexp_replace(s, '\yPLACE\y',         'PL',   'g');
-  s := regexp_replace(s, '\yLANE\y',          'LN',   'g');
-  s := regexp_replace(s, '\yWY\y',            'WAY',  'g');
+  s := regexp_replace(s, '\ySTREET\y', 'ST', 'g');
+  s := regexp_replace(s, '\yDRIVE\y', 'DR', 'g');
+  s := regexp_replace(s, '\yROAD\y', 'RD', 'g');
+  s := regexp_replace(s, '\yPLACE\y', 'PL', 'g');
+  s := regexp_replace(s, '\yLANE\y', 'LN', 'g');
+  s := regexp_replace(s, '\yWY\y', 'WAY', 'g');
   -- ordinal street NAMES before a suffix: "6 ST" -> "6TH ST"
-  s := regexp_replace(s, '\y1 (ST|AVE)\y',            '1ST \1', 'g');
-  s := regexp_replace(s, '\y2 (ST|AVE)\y',            '2ND \1', 'g');
-  s := regexp_replace(s, '\y3 (ST|AVE)\y',            '3RD \1', 'g');
+  s := regexp_replace(s, '\y1 (ST|AVE)\y', '1ST \1', 'g');
+  s := regexp_replace(s, '\y2 (ST|AVE)\y', '2ND \1', 'g');
+  s := regexp_replace(s, '\y3 (ST|AVE)\y', '3RD \1', 'g');
   s := regexp_replace(s, '\y([4-9]|1[0-9]) (ST|AVE)\y', '\1TH \2', 'g');
   return s;
 end
 $$;
 
 create table if not exists geocode_overrides (
-    norm_address text primary key,      -- uapd_norm_addr() of the source address
-    lat          double precision,      -- <-- FILL IN by hand
-    lon          double precision,      -- <-- FILL IN by hand
-    label        text,                  -- human name for the spot
-    example_raw  text,                  -- a sample raw address that maps here
-    incidents    int,                   -- bike incidents here (prioritize by this)
-    note         text
+    norm_address text primary key -- uapd_norm_addr() of the source address
+    , lat double precision
+    , lon double precision
+    , label text
+    , example_raw text
+    , incidents int -- bike incidents here (prioritize by this)
+    , note text
 );

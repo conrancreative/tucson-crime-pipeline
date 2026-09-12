@@ -13,8 +13,8 @@
 
 create table if not exists raw_tpd_reported_2026 (
     incident_number text primary key,
-    payload         jsonb not null,
-    pulled_at       timestamptz default now()
+    payload jsonb not null,
+    pulled_at timestamptz default now()
 );
 
 create or replace view int_reported_2026 as
@@ -23,20 +23,18 @@ with a as (
     from raw_tpd_reported_2026
 )
 select
-    attrs->>'IncidentNumber'                                 as incident_id,
-    attrs->>'Offense'                                        as offense_code,
+    attrs->>'IncidentNumber' as incident_id,
+    attrs->>'Offense' as offense_code,
     coalesce(attrs->>'StatuteDescription', 'Larceny - Bicycles') as offense_description,
     to_timestamp((attrs->>'OccurredDateTime')::bigint / 1000.0) as occurred_at,
-    (to_timestamp((attrs->>'OccurredDateTime')::bigint / 1000.0)
-        at time zone 'America/Phoenix')                      as occurred_at_az,
-    extract(year from
-        to_timestamp((attrs->>'OccurredDateTime')::bigint / 1000.0))::int as year,
-    nullif(attrs->>'Ward', '')                               as ward,
-    nullif(attrs->>'NeighborhoodAssociation', '')            as neighborhood,
-    attrs->>'Address100Block'                                as address,
-    (attrs->>'Offense' = '0606')                             as is_bicycle,
-    (geom->>'x')::double precision                           as lon,
-    (geom->>'y')::double precision                           as lat,
+    (to_timestamp((attrs->>'OccurredDateTime')::bigint / 1000.0) at time zone 'America/Phoenix') as occurred_at_az,
+    extract(year from to_timestamp((attrs->>'OccurredDateTime')::bigint / 1000.0))::int as year,
+    nullif(attrs->>'Ward', '') as ward,
+    nullif(attrs->>'NeighborhoodAssociation', '') as neighborhood,
+    attrs->>'Address100Block' as address,
+    (attrs->>'Offense' = '0606') as is_bicycle,
+    (geom->>'x')::double precision as lon,
+    (geom->>'y')::double precision as lat,
     pulled_at,
-    (pulled_at at time zone 'America/Phoenix')               as pulled_at_az
+    (pulled_at at time zone 'America/Phoenix') as pulled_at_az
 from a;

@@ -13,7 +13,7 @@
 -- ============================================================================
 
 create table if not exists ingest_heartbeat (
-    step     text primary key,
-    ran_at   timestamptz not null default now(),
-    note     text                       -- optional human-readable summary of the run
+    step text primary key
+    , ran_at timestamptz not null default now()
+    , note text -- optional human-readable summary of the run
 );

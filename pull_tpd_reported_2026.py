@@ -28,7 +28,7 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 SVC = ("https://services3.arcgis.com/9coHY2fvuFjG9HQX/arcgis/rest/services/"
        "TPDOpenDataReportedCrimes2026/FeatureServer/0")
-WHERE = "Offense='0606'"          # 0606 == Larceny - Bicycles
+WHERE = "Offense='0606'"  # 0606 == Larceny - Bicycles
 PAGE_SIZE = 2000
 
 UPSERT_SQL = """

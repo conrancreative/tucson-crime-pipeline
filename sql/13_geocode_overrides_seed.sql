@@ -1,32 +1,27 @@
 -- ============================================================================
--- 13_geocode_overrides_seed.sql  ·  manual lat/lon for un-geocodable UA spots
+-- 13_geocode_overrides_seed.sql / manual lat/lon for un-geocodable UA spots
 -- ----------------------------------------------------------------------------
 -- Campus-interior streets / intersections the U.S. Census geocoder can't place,
 -- among UA bike incidents (theft + crash). Most are PRE-FILLED from OpenStreetMap
--- + Census-intersection lookups (validated inside a Tucson bounding box). The
--- rows marked "TODO" still need a lat/lon -- look the spot up on Google Maps
--- (right-click -> the first numbers are "lat, lon") and paste them in.
---
--- 44 of 53 pre-filled · 9 left to do.
--- Apply with ./apply_sql.sh sql/13_geocode_overrides_seed.sql, then refresh
--- mart_uapd_bike + mart_bike_crimes. Re-applying updates coords in place.
+-- + Census-intersection lookups (validated inside a Tucson bounding box).
+
+-- manual override need from weird formatting, unparsable data. hopefully a one-time exercise, documenting for history
 -- ============================================================================
--- [23 incidents] 1423 E UNIVERSITY BL   (osm:Modern Languages, 1423, East University Boulev)
 insert into geocode_overrides (
-    norm_address,
-    example_raw,
-    incidents,
-    label,
-    lat,
-    lon
+    norm_address
+    , example_raw
+    , incidents
+    , label
+    , lat
+    , lon
   )
 values (
-    '1423 E UNIVERSITY BLVD',
-    '1423 E UNIVERSITY BL',
-    23,
-    null,
-    32.232744,
-    -110.950089
+    '1423 E UNIVERSITY BLVD'
+    , '1423 E UNIVERSITY BL'
+    , 23
+    , null
+    , 32.232744
+    , -110.950089
   ) on conflict (norm_address) do
 update
 set lat = excluded.lat,
@@ -35,20 +30,20 @@ set lat = excluded.lat,
   example_raw = excluded.example_raw;
 -- [21 incidents] 910 E 5TH ST   (osm:East 5th Street, West University, Tucson, Pima)
 insert into geocode_overrides (
-    norm_address,
-    example_raw,
-    incidents,
-    label,
-    lat,
-    lon
+    norm_address
+    , example_raw
+    , incidents
+    , label
+    , lat
+    , lon
   )
 values (
-    '910 E 5TH ST',
-    '910 E 5TH ST',
-    21,
-    null,
-    32.229009,
-    -110.970222
+    '910 E 5TH ST'
+    , '910 E 5TH ST'
+    , 21
+    , null
+    , 32.229009
+    , -110.970222
   ) on conflict (norm_address) do
 update
 set lat = excluded.lat,
