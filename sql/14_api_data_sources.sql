@@ -10,38 +10,38 @@
 -- ============================================================================
 
 create or replace view api_data_sources as
-select 'reported_2026'::text as source_key,
-  (select max(occurred_at)::date from int_reported_2026 where is_bicycle)         as latest_data_row,
-  (select max(pulled_at) from raw_tpd_reported_2026)                              as last_refreshed,
-  (select max(pulled_at) at time zone 'America/Phoenix' from raw_tpd_reported_2026) as last_refreshed_az,
-  (select count(*)::int from raw_tpd_reported_2026)                               as row_count
+select 'reported_2026'::text as source_key
+    , (select max(occurred_at)::date from int_reported_2026 where is_bicycle) as latest_data_row
+    , (select max(pulled_at) from raw_tpd_reported_2026) as last_refreshed
+    , (select max(pulled_at) at time zone 'America/Phoenix' from raw_tpd_reported_2026) as last_refreshed_az
+    , (select count(*)::int from raw_tpd_reported_2026) as row_count
 union all
-select 'uapd',
-  (select max(coalesce(offense_dt, report_dt))::date from raw_uapd_log),
-  (select max(scraped_at) from raw_uapd_log),
-  (select max(scraped_at) at time zone 'America/Phoenix' from raw_uapd_log),
-  (select count(*)::int from raw_uapd_log)
+select 'uapd'
+    , (select max(coalesce(offense_dt, report_dt))::date from raw_uapd_log)
+    , (select max(scraped_at) from raw_uapd_log)
+    , (select max(scraped_at) at time zone 'America/Phoenix' from raw_uapd_log)
+    , (select count(*)::int from raw_uapd_log)
 union all
-select 'incidents_history',
-  (select max(occurred_at)::date from int_incidents where is_bicycle and year <= 2025),
-  (select max(pulled_at) from raw_tpd_incidents where source_layer like 'y%'),
-  (select max(pulled_at) at time zone 'America/Phoenix' from raw_tpd_incidents where source_layer like 'y%'),
-  (select count(*)::int from raw_tpd_incidents where source_layer like 'y%')
+select 'incidents_history'
+    , (select max(occurred_at)::date from int_incidents where is_bicycle and year <= 2025)
+    , (select max(pulled_at) from raw_tpd_incidents where source_layer like 'y%')
+    , (select max(pulled_at) at time zone 'America/Phoenix' from raw_tpd_incidents where source_layer like 'y%')
+    , (select count(*)::int from raw_tpd_incidents where source_layer like 'y%')
 union all
-select 'incidents_45day',
-  (select max(occurred_at)::date from int_incidents),               -- leading edge = the 45-day rows
-  (select max(pulled_at) from raw_tpd_incidents where source_layer = 'last45'),
-  (select max(pulled_at) at time zone 'America/Phoenix' from raw_tpd_incidents where source_layer = 'last45'),
-  (select count(*)::int from raw_tpd_incidents where source_layer = 'last45')
+select 'incidents_45day'
+    , (select max(occurred_at)::date from int_incidents) -- leading edge = the 45-day rows
+    , (select max(pulled_at) from raw_tpd_incidents where source_layer = 'last45')
+    , (select max(pulled_at) at time zone 'America/Phoenix' from raw_tpd_incidents where source_layer = 'last45')
+    , (select count(*)::int from raw_tpd_incidents where source_layer = 'last45')
 union all
-select 'cfs_bike',
-  (select max(occurred_at)::date from int_cfs_bike),
-  (select max(pulled_at) from raw_tpd_cfs_bike),
-  (select max(pulled_at) at time zone 'America/Phoenix' from raw_tpd_cfs_bike),
-  (select count(*)::int from raw_tpd_cfs_bike)
+select 'cfs_bike'
+    , (select max(occurred_at)::date from int_cfs_bike)
+    , (select max(pulled_at) from raw_tpd_cfs_bike)
+    , (select max(pulled_at) at time zone 'America/Phoenix' from raw_tpd_cfs_bike)
+    , (select count(*)::int from raw_tpd_cfs_bike)
 union all
-select 'geocoding',
-  null::date,
+select 'geocoding'
+    , null::date,
   -- "last refreshed" = when the geocode step last RAN, not when the cache last
   -- grew. The cache only gains a row for a brand-new distinct address, so on a
   -- small campus footprint max(geocoded_at) freezes for days while the step
@@ -53,11 +53,11 @@ select 'geocoding',
            (select max(geocoded_at) from geocode_cache)) at time zone 'America/Phoenix',
   (select count(*)::int from geocode_cache)
 union all
-select 'wards',
-  null::date,
-  (select max(pulled_at) from ref_wards),
-  (select max(pulled_at) at time zone 'America/Phoenix' from ref_wards),
-  (select count(*)::int from ref_wards);
+select 'wards'
+    , null::date
+    , (select max(pulled_at) from ref_wards)
+    , (select max(pulled_at) at time zone 'America/Phoenix' from ref_wards)
+    , (select count(*)::int from ref_wards);
 
 -- read-only API access (Supabase; no-op locally where the anon role is absent)
 do $$

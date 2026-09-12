@@ -9,10 +9,10 @@
 -- ============================================================================
 
 create table if not exists geocode_cache (
-    address         text primary key,       -- raw address string as it appears in the source
-    lat             double precision,        -- NULL if not matched
-    lon             double precision,
-    matched_address text,                    -- what the geocoder matched (QA)
-    source          text default 'census',
-    geocoded_at     timestamptz default now()
+    address text primary key -- raw address string as it appears in the source
+    , lat double precision -- NULL if not matched
+    , lon double precision
+    , matched_address text -- what the geocoder matched (QA)
+    , source text default 'census'
+    , geocoded_at timestamptz default now()
 );
