@@ -373,7 +373,12 @@ const SOURCES = [
       `source for current-year thefts shown on the map.`,
     coverage: "Jan 2026 to present",
     cadence: "Source updates ~daily; pulled daily at 5:00 AM AZ",
-    endpoint: "https://services3.arcgis.com/9coHY2fvuFjG9HQX/arcgis/rest/services/TPDOpenDataReportedCrimes2026/FeatureServer/0"
+    endpoint: "https://services3.arcgis.com/9coHY2fvuFjG9HQX/arcgis/rest/services/TPDOpenDataReportedCrimes2026/FeatureServer/0",
+    paused: true,
+    note: `Tucson PD is moving to a new open-data platform, so this feed is ` +
+      `temporarily unavailable and not updating. The map keeps showing the most ` +
+      `recent data collected before the pause; it will resume automatically once ` +
+      `the new system is live.`
   },
   {
     key: "uapd", live: true, method: ["Scraper", "HTML"],
@@ -467,23 +472,26 @@ async function loadSources() {
   document.getElementById("src-asof").textContent =
     latestRow ? "as of " + fmtStamp(latestRow.last_refreshed_az) + " AZ" : "";
 
-  let staleCount = 0;
+  let staleCount = 0, pausedCount = 0;
   document.getElementById("src-cards").innerHTML = SOURCES.map(src => {
     const row = byKey[src.key] || {};
     const hrs = row.last_refreshed ? (Date.now() - new Date(row.last_refreshed)) / 36e5 : Infinity;
-    const stale = src.live && hrs > 48;
+    const paused = !!src.paused;                          // known, explained outage
+    const stale = src.live && !paused && hrs > 48;
     if (stale) staleCount++;
+    if (paused) pausedCount++;
     const chip = src.method.map(esc).join('<span class="sep">·</span>');
     const left = src.latestFromCount
       ? { lbl: src.countLabel, val: (row.row_count ?? 0).toLocaleString() + (src.countUnit || "") }
       : { lbl: "Latest data row", val: fmtDateOnly(row.latest_data_row) };
     const days = isFinite(hrs) ? Math.floor(hrs / 24) : null;
-    return `<div class="src-card">
+    return `<div class="src-card${paused ? " src-card-paused" : ""}">
       <div class="src-card-top">
-        <div class="src-name"><span class="src-dot ${stale ? "warn" : "ok"}"></span><h3>${esc(src.name)}</h3></div>
-        <span class="src-chip">${chip}</span>
+        <div class="src-name"><span class="src-dot ${stale || paused ? "warn" : "ok"}"></span><h3>${esc(src.name)}</h3></div>
+        <span class="src-chip">${paused ? "Paused" : chip}</span>
       </div>
       <p class="src-desc">${src.desc}</p>
+      ${src.note ? `<div class="src-note">${src.note}</div>` : ""}
       <div class="src-meta">
         <div><span class="lbl">Coverage</span><span class="val">${esc(src.coverage)}</span></div>
         <div><span class="lbl">Update cadence</span><span class="val">${esc(src.cadence)}</span></div>
@@ -493,16 +501,20 @@ async function loadSources() {
         <div class="src-stat"><span class="lbl">${esc(left.lbl)}</span><span class="big">${left.val}</span></div>
         <div class="src-stat"><span class="lbl">Last refreshed</span>
           <span class="big">${fmtStamp(row.last_refreshed_az)} <span class="az">AZ</span></span>
-          ${stale ? `<span class="warn">Not refreshed in ${days} days</span>` : ""}
+          ${paused ? `<span class="warn">Paused</span>`
+                   : (stale ? `<span class="warn">Not refreshed in ${days} days</span>` : "")}
         </div>
       </div>
     </div>`;
   }).join("");
 
   const overall = document.getElementById("src-overall");
-  overall.className = "src-overall " + (staleCount ? "warn" : "ok");
-  overall.innerHTML = staleCount
-    ? `<span class="pip"></span> <b>${staleCount} of ${SOURCES.length} sources</b>&nbsp;not refreshed in 48 hours`
+  const issues = [];
+  if (pausedCount) issues.push(`${pausedCount} paused`);
+  if (staleCount) issues.push(`${staleCount} stale`);
+  overall.className = "src-overall " + (issues.length ? "warn" : "ok");
+  overall.innerHTML = issues.length
+    ? `<span class="pip"></span> <b>${issues.join(", ")}</b>&nbsp;of ${SOURCES.length} sources`
     : `<span class="pip"></span> <b>All ${SOURCES.length} sources</b>&nbsp;refreshed on schedule`;
 }
 

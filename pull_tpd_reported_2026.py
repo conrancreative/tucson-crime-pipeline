@@ -53,17 +53,30 @@ def clean_geometry(feature):
     return feature
 
 
+class SourceUnavailable(Exception):
+    """The upstream ArcGIS service is unreachable or gated (auth required)."""
+
+
 def fetch_page(offset):
     params = {
         "where": WHERE, "outFields": "*", "returnGeometry": "true", "outSR": 4326,
         "f": "json", "resultOffset": offset, "resultRecordCount": PAGE_SIZE,
         "orderByFields": "OBJECTID ASC",
     }
-    resp = requests.get(f"{SVC}/query", params=params, timeout=60)
-    resp.raise_for_status()
-    data = resp.json()
+    try:
+        resp = requests.get(f"{SVC}/query", params=params, timeout=60)
+        resp.raise_for_status()
+        data = resp.json()
+    except requests.RequestException as e:
+        raise SourceUnavailable(str(e))
     if "error" in data:
-        raise RuntimeError(f"ArcGIS error: {data['error']}")
+        err = data["error"]
+        # 499/498 = Token Required, 403 = Forbidden: the layer went private
+        # (e.g. TPD migrating their open-data platform). Treat as unavailable,
+        # not a bug -- skip this pull and keep the data we already have.
+        if err.get("code") in (403, 498, 499):
+            raise SourceUnavailable(err.get("message", "authentication required"))
+        raise RuntimeError(f"ArcGIS error: {err}")
     return data.get("features", []), data.get("exceededTransferLimit", False)
 
 
@@ -93,28 +106,38 @@ def main():
 
     offset = 0
     loaded = 0
-    while True:
-        features, more = fetch_page(offset)
-        if not features:
-            break
-        # one row per person/role in the source -> dedupe to one per incident
-        page = {}
-        for feature in features:
-            num = feature["attributes"].get("IncidentNumber")
-            if not num:
-                continue
-            feature = clean_geometry(feature)
-            page[str(num)] = (str(num), json.dumps(feature))
-        if page:
-            execute_values(cur, UPSERT_SQL, list(page.values()),
-                           template="(%s, %s::jsonb)", page_size=1000)
-            conn.commit()
-        loaded += len(features)
-        offset += PAGE_SIZE
-        print(f"  loaded {loaded} rows")
-        if not more and len(features) < PAGE_SIZE:
-            break
-        time.sleep(0.2)
+    try:
+        while True:
+            features, more = fetch_page(offset)
+            if not features:
+                break
+            # one row per person/role in the source -> dedupe to one per incident
+            page = {}
+            for feature in features:
+                num = feature["attributes"].get("IncidentNumber")
+                if not num:
+                    continue
+                feature = clean_geometry(feature)
+                page[str(num)] = (str(num), json.dumps(feature))
+            if page:
+                execute_values(cur, UPSERT_SQL, list(page.values()),
+                               template="(%s, %s::jsonb)", page_size=1000)
+                conn.commit()
+            loaded += len(features)
+            offset += PAGE_SIZE
+            print(f"  loaded {loaded} rows")
+            if not more and len(features) < PAGE_SIZE:
+                break
+            time.sleep(0.2)
+    except SourceUnavailable as e:
+        # Don't fail the run -- the source is down/gated (TPD platform migration).
+        # Keep the existing stored data; the map keeps serving what we have.
+        print(f"NOTICE: ReportedCrimes2026 source unavailable ({e}). "
+              f"Skipping this pull, keeping existing data.")
+        conn.rollback()
+        cur.close()
+        conn.close()
+        return
 
     cur.close()
     print("Refreshing marts ...")
