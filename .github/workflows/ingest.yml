@@ -26,7 +26,11 @@ jobs:
 
       - run: pip install -r requirements.txt
 
+      # Each source runs independently: continue-on-error keeps one upstream
+      # outage (e.g. a source going token-gated) from aborting the rest of the
+      # pipeline. Freshness is monitored separately (Sources tab / spot_check.sql).
       - name: Pull reported bike thefts + refresh marts
+        continue-on-error: true
         env:
           # Set this repo secret to your Supabase **Session pooler** connection string
           # (Project → Settings → Database → Connection string → Session pooler).
@@ -35,21 +39,25 @@ jobs:
         run: python pull_tpd_incidents.py ${{ github.event.inputs.mode || 'refresh' }}
 
       - name: Pull 2026 reported bike thefts (active current-year source) + refresh marts
+        continue-on-error: true
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python pull_tpd_reported_2026.py
 
       - name: Pull bike calls-for-service (calls/traffic/crashes) + refresh marts
+        continue-on-error: true
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python pull_tpd_cfs_bike.py
 
       - name: Scrape UAPD daily crime log (new entries)
+        continue-on-error: true
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python pull_uapd_log.py refresh
 
       - name: Geocode new UAPD addresses + refresh UA bike mart
+        continue-on-error: true
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python geocode_uapd.py
