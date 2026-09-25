@@ -1,7 +1,8 @@
 """
 Pull 2026 reported bicycle thefts from TPD's ReportedCrimes2026 open-data layer.
 
-Source: services3.arcgis.com/.../TPDOpenDataReportedCrimes2026/FeatureServer/0 --
+Source: services3.arcgis.com/.../TPDOpenData_ReportedCrimes_2026/FeatureServer/0 --
+(City relaunched this layer under a new name in Sep 2026; old TPDOpenDataReportedCrimes2026 is gone) --
 the complete + fresh 2026 reported-crimes layer (geometry, ward, neighborhood,
 block address). Replaces the incomplete 45-day incidents layer as the 2026 source
 (the 45-day layer is kept only as a stored backup).
@@ -27,7 +28,7 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 SVC = ("https://services3.arcgis.com/9coHY2fvuFjG9HQX/arcgis/rest/services/"
-       "TPDOpenDataReportedCrimes2026/FeatureServer/0")
+       "TPDOpenData_ReportedCrimes_2026/FeatureServer/0")
 WHERE = "Offense='0606'"  # 0606 == Larceny - Bicycles
 PAGE_SIZE = 2000
 

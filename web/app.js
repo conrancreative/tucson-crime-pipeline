@@ -373,12 +373,7 @@ const SOURCES = [
       `source for current-year thefts shown on the map.`,
     coverage: "Jan 2026 to present",
     cadence: "Source updates ~daily; pulled daily at 5:00 AM AZ",
-    endpoint: "https://services3.arcgis.com/9coHY2fvuFjG9HQX/arcgis/rest/services/TPDOpenDataReportedCrimes2026/FeatureServer/0",
-    paused: true,
-    note: `Tucson PD is moving to a new open-data platform, so this feed is ` +
-      `temporarily unavailable and not updating. The map keeps showing the most ` +
-      `recent data collected before the pause; it will resume automatically once ` +
-      `the new system is live.`
+    endpoint: "https://services3.arcgis.com/9coHY2fvuFjG9HQX/arcgis/rest/services/TPDOpenData_ReportedCrimes_2026/FeatureServer/0"
   },
   {
     key: "uapd", live: true, method: ["Scraper", "HTML"],
