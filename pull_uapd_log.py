@@ -20,7 +20,7 @@ Usage:
 import os
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import requests
 from bs4 import BeautifulSoup
@@ -52,17 +52,31 @@ UPSERT_SQL = """
 
 
 def parse_dt(s):
-    """'08/30/2026 - 2:07pm' -> datetime (Arizona local). Tolerates blanks."""
+    """'08/30/2026 - 2:07pm' -> datetime (Arizona local). Tolerates blanks.
+
+    Rejects implausible dates (data-entry typos like a year of 2206, or a date
+    in the future) by returning None. A bad field then falls back to the other
+    via COALESCE downstream, and typos can't poison the "latest crime date".
+    """
     s = (s or "").strip()
     if not s:
         return None
     s = s.replace("am", "AM").replace("pm", "PM")
+    dt = None
     for fmt in ("%m/%d/%Y - %I:%M%p", "%m/%d/%Y - %I%p", "%m/%d/%Y"):
         try:
-            return datetime.strptime(s, fmt)
+            dt = datetime.strptime(s, fmt)
+            break
         except ValueError:
             continue
-    return None
+    if dt is None:
+        return None
+    # UAPD logs span 2015->present; a wild year or a future date is a typo.
+    # (Dates are AZ-local, always behind UTC, so a 2-day buffer never rejects
+    # legit recent entries.)
+    if dt.year < 2015 or dt > datetime.utcnow() + timedelta(days=2):
+        return None
+    return dt
 
 
 def scrape_page(page):

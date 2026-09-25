@@ -17,7 +17,9 @@ select 'reported_2026'::text as source_key
     , (select count(*)::int from raw_tpd_reported_2026) as row_count
 union all
 select 'uapd'
-    , (select max(coalesce(offense_dt, report_dt))::date from raw_uapd_log)
+    -- exclude future-dated rows (data-entry typos) so "latest" is the newest real crime
+    , (select max(coalesce(offense_dt, report_dt))::date from raw_uapd_log
+       where coalesce(offense_dt, report_dt) <= now())
     , (select max(scraped_at) from raw_uapd_log)
     , (select max(scraped_at) at time zone 'America/Phoenix' from raw_uapd_log)
     , (select count(*)::int from raw_uapd_log)
