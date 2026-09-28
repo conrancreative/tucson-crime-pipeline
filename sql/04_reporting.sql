@@ -25,7 +25,15 @@ drop materialized view if exists mart_bike_crimes;
 --          attributed to Ward 6 (the campus sits in Ward 6) but flagged source =
 --          'UAPD' so the map colors them differently and the Ward 6 metrics can
 --          split TPD vs UA. `geocoded` = false marks Old-Main-fallback points.
+--
+-- Neighborhood: the source label is kept as `neighborhood_reported`. Where it's a
+-- placeholder (TPD police-team code T101..T408, or blank -- common in the
+-- 2018-2025 layers), `neighborhood` is filled by point-in-polygon against
+-- ref_neighborhoods (17_ref_neighborhoods.sql); real names are never overridden.
+-- `neighborhood_source` = reported | spatial | unassigned.
 create materialized view mart_bike_crimes as
+
+with unioned as (
 
 select incident_id as id
     , occurred_at
@@ -36,7 +44,7 @@ select incident_id as id
     , time_occur
     , division
     , ward
-    , neighborhood
+    , neighborhood as neighborhood_reported
     , address
     , parcel_group
     , parcel_category
@@ -66,7 +74,7 @@ select incident_id as id
     , null::text
     , null::text
     , ward
-    , neighborhood
+    , neighborhood as neighborhood_reported
     , address
     -- parcel_group, parcel_category, case_status
     , null::text
@@ -99,7 +107,7 @@ select 'UA:' || case_number as id
     , null::text
     , null::text
     , '6'::text as ward
-    , 'University of Arizona'::text as neighborhood
+    , 'University of Arizona'::text as neighborhood_reported
     , address
     -- parcel_group, parcel_category
     , null::text
@@ -118,7 +126,27 @@ from int_uapd
 
 where is_bike_theft
 
-order by occurred_at desc;
+)
+
+select u.*
+    , case
+        when not neighborhood_is_placeholder(u.neighborhood_reported) then trim(u.neighborhood_reported)
+        else coalesce(n.name, 'Unassigned')
+      end as neighborhood
+    , case
+        when not neighborhood_is_placeholder(u.neighborhood_reported) then 'reported'
+        when n.name is not null then 'spatial'
+        else 'unassigned'
+      end as neighborhood_source
+
+from unioned u
+-- look up only placeholder rows (TPD team codes / blanks)
+left join lateral (
+    select nbhd_at(u.lon, u.lat) as name
+    where neighborhood_is_placeholder(u.neighborhood_reported)
+) n on true
+
+order by u.occurred_at desc;
 
 -- unique index 
 create unique index if not exists mart_bike_crimes_id_idx
