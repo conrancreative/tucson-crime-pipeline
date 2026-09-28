@@ -132,6 +132,12 @@ How they interact: the puller **writes** `raw_tpd_incidents`; `int_incidents` re
 - The `current` layer (id 24) is **deliberately excluded** — it lacks `DATETIME_OCCU` and the
   parcel/census fields, and would degrade records on conflict.
 - The 45-day window is by **report** date, so a few records have an `occurred_at` in the prior year.
+- **Neighborhood labels:** the 2018-2025 year layers tag ~10-25% of thefts with a TPD police-team
+  code (`T101`..`T408`) or a blank instead of a neighborhood name. `mart_bike_crimes` fills only those
+  placeholders by point-in-polygon against the city's `NEIGHBORHOODS_ALL` layer (`ref_neighborhoods`,
+  loaded by `pull_neighborhoods.py`); real reported names are never overridden (2026 coordinates are
+  privacy-offset, so the reported name is more accurate). The original label stays in
+  `neighborhood_reported`; `neighborhood_source` = `reported` | `spatial` | `unassigned` (outside city limits).
 
 ---
 
@@ -139,12 +145,14 @@ How they interact: the puller **writes** `raw_tpd_incidents`; `int_incidents` re
 
 ```
 pull_tpd_incidents.py   # ingestion (backfill | refresh)
+pull_neighborhoods.py   # neighborhood polygons -> ref_neighborhoods (run once / rarely)
 apply_sql.sh            # apply .sql files to .env's DATABASE_URL
 sql/
   01_raw.sql            # landing table (raw_tpd_incidents)
   03_transform.sql      # int_incidents view
   04_reporting.sql      # mart_bike_crimes, mart_bike_stats
   05_api_grants.sql     # read-only API grants (Supabase)
+  17_ref_neighborhoods.sql # neighborhood polygons + nbhd_at() lookup (apply before 04)
   inspect.sql           # per-layer sanity report
   scratch.sql           # ad-hoc query playground
 .github/workflows/
