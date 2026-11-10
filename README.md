@@ -131,6 +131,9 @@ How they interact: the puller **writes** `raw_tpd_incidents`; `int_incidents` re
   (per-year `TPD_INCIDENTS_PUBLIC_YYYY` + 45-day `TUCSON_INCIDENTS_PUBLIC_45D`).
 - The `current` layer (id 24) is **deliberately excluded** — it lacks `DATETIME_OCCU` and the
   parcel/census fields, and would degrade records on conflict.
+- PAG's public Tucson Metro Bike Map Bikeways layer (FeatureServer layer 4) is mirrored to
+  `raw_pag_bikeways`. `preview_pag_bikeways` and `preview_pag_bikeways_summary` are private
+  database inspection views and are not used by the website.
 - The 45-day window is by **report** date, so a few records have an `occurred_at` in the prior year.
 - **Neighborhood labels:** the 2018-2025 year layers tag ~10-25% of thefts with a TPD police-team
   code (`T101`..`T408`) or a blank instead of a neighborhood name. `mart_bike_crimes` fills only those
@@ -139,12 +142,54 @@ How they interact: the puller **writes** `raw_tpd_incidents`; `int_incidents` re
   privacy-offset, so the reported name is more accurate). The original label stays in
   `neighborhood_reported`; `neighborhood_source` = `reported` | `spatial` | `unassigned` (outside city limits).
 
+### PAG Bikeways preview
+
+Apply the schema once, then load or refresh the source snapshot:
+
+```bash
+./apply_sql.sh sql/18_pag_bikeways.sql
+./.venv/bin/python pull_pag_bikeways.py
+```
+
+Inspect a few segments or the source's class/mileage totals in SQL:
+
+```sql
+select * from preview_pag_bikeways order by objectid limit 20;
+select * from preview_pag_bikeways_summary;
+```
+
+### Full PAG bike map + Tugo data
+
+The pipeline also mirrors the other six layers in PAG's Tucson Metro Bike Map and the
+legacy Tugo station layer, preserving full source GeoJSON in `raw_pag_bikemap_features`.
+`preview_pag_bikemap_features` combines those features with the primary bikeways layer;
+`preview_pag_bikemap_layer_summary` reports each source layer's count and geometry coverage.
+
+Tugo's public GBFS manifest is used to discover and store every advertised feed, including
+station inventory and live station status, vehicle types, pricing plans, regions,
+geofencing zones, and system information. Complete response payloads are retained in
+`raw_tugo_gbfs_snapshots`; `preview_tugo_gbfs_feeds` exposes the latest snapshot of each
+feed and `preview_tugo_stations` joins the latest station information and status. The
+scheduled job captures one snapshot per day, so it is not a continuous availability history.
+
+```bash
+./apply_sql.sh sql/19_pag_bikemap_and_tugo.sql
+.venv/bin/python pull_pag_bikemap_layers.py
+.venv/bin/python pull_tugo_gbfs.py
+```
+
+The preview views and raw tables are private database inspection data; they are not wired
+to the public site.
+
 ---
 
 ## Repo layout
 
 ```
 pull_tpd_incidents.py   # ingestion (backfill | refresh)
+pull_pag_bikeways.py   # PAG bikeway network snapshot -> raw_pag_bikeways
+pull_pag_bikemap_layers.py # Other PAG map layers + legacy Tugo station GIS
+pull_tugo_gbfs.py      # Complete TuGo GBFS feed snapshots
 pull_neighborhoods.py   # neighborhood polygons -> ref_neighborhoods (run once / rarely)
 apply_sql.sh            # apply .sql files to .env's DATABASE_URL
 sql/
@@ -153,6 +198,8 @@ sql/
   04_reporting.sql      # mart_bike_crimes, mart_bike_stats
   05_api_grants.sql     # read-only API grants (Supabase)
   17_ref_neighborhoods.sql # neighborhood polygons + nbhd_at() lookup (apply before 04)
+  18_pag_bikeways.sql # PAG bike-network snapshot table + private preview views
+  19_pag_bikemap_and_tugo.sql # Remaining PAG map layers + all TuGo GBFS feeds
   inspect.sql           # per-layer sanity report
   scratch.sql           # ad-hoc query playground
 .github/workflows/
