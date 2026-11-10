@@ -61,3 +61,21 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python geocode_uapd.py
+
+      - name: Refresh PAG bikeway network preview
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python pull_pag_bikeways.py
+
+      - name: Refresh remaining PAG bike map layers + legacy Tugo stations
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python pull_pag_bikemap_layers.py
+
+      - name: Capture all Tugo GBFS feeds
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python pull_tugo_gbfs.py
