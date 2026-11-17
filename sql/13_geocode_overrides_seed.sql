@@ -1172,3 +1172,18 @@ set lat = excluded.lat,
   lon = excluded.lon,
   incidents = excluded.incidents,
   example_raw = excluded.example_raw;
+
+-- 541 N Cherry Ave (Google Maps). The UAPD log also uses a suffixless spelling.
+insert into geocode_overrides (
+    norm_address
+    , example_raw
+    , lat
+    , lon
+)
+values
+    (uapd_norm_addr('541 N Cherry Ave'), '541 N Cherry Ave', 32.22903039136302, -110.9482879)
+    , (uapd_norm_addr('541 N Cherry'), '541 N CHERRY', 32.22903039136302, -110.9482879)
+on conflict (norm_address) do update
+set lat = excluded.lat
+    , lon = excluded.lon
+    , example_raw = excluded.example_raw;
