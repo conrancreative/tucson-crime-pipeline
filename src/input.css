@@ -795,3 +795,71 @@ a {
     color: var(--color-ink-2);
   }
 }
+/* Local bike-route playground, using the existing shell and map styling. */
+#view-routes { position: relative; }
+#routes-map { flex: 1; min-width: 0; min-height: 0; }
+.route-panel {
+  width: 260px;
+  flex: none;
+  padding: 18px 16px;
+  overflow: auto;
+  border-right: 1px solid var(--color-line);
+  font-size: 13px;
+  background: var(--color-panel);
+}
+.route-panel summary { font-weight: 700; cursor: pointer; }
+.route-actions { display: flex; gap: 8px; margin: 14px 0; }
+.route-panel button {
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid var(--color-line);
+  border-radius: 7px;
+  background: var(--color-inset);
+  padding: 6px 9px;
+}
+.route-panel button:disabled { opacity: .5; cursor: wait; }
+.route-filter, .route-crossing-toggle, .route-station-toggle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 38px;
+  cursor: pointer;
+}
+.route-filter input, .route-crossing-toggle input, .route-station-toggle input { width: 16px; height: 16px; flex: none; }
+.route-swatch { width: 20px; height: 4px; border-radius: 2px; flex: none; }
+.route-crossing-toggle { border-top: 1px solid var(--color-line); margin-top: 12px; padding-top: 12px; }
+.crossing-key { font-size: 16px; }
+/* Light blue and orange from TuGo's site palette. */
+.station-key { background: #83dbe0; border: 1px solid #f9a11b; border-radius: 4px; padding: 0 2px; }
+.station-marker {
+  background: #83dbe0;
+  border: 2px solid #f9a11b;
+  border-radius: 6px;
+  box-shadow: 0 1px 4px #0004;
+  display: grid;
+  place-items: center;
+  font-size: 17px;
+}
+.station-marker span { line-height: 1; transform: translateY(-1px); }
+.station-tooltip { font-size: 12px; line-height: 1.6; white-space: normal; min-width: 220px; }
+.station-tooltip .d { font-weight: 700; }
+.station-tooltip .s { color: var(--color-ink-2); margin-top: 4px; }
+.station-smart { color: #266294; font-weight: 600; font-size: 11px; margin: 2px 0 5px; }
+.crossing-marker {
+  background: #fff;
+  border: 2px solid #334155;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px #0004;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+}
+#route-summary { margin: 16px 0 8px; line-height: 1.6; }
+#route-snapshot { color: var(--color-ink-2); font-size: 11px; margin-bottom: 14px; }
+@media (max-width: 640px) {
+  #view-routes { flex-direction: column; }
+  .route-panel { width: auto; padding: 10px 14px; max-height: 42%; border-right: 0; border-bottom: 1px solid var(--color-line); }
+  #route-filters { display: grid; grid-template-columns: 1fr 1fr; gap: 0 8px; }
+  .route-filter { font-size: 12px; }
+  #route-summary { margin: 8px 0; }
+}

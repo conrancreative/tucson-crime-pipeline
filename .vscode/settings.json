@@ -2,6 +2,8 @@
   "workbench.colorTheme": "Solarized Dark",
   "editor.fontSize": 18,
   "terminal.integrated.fontSize": 18,
+  "sqltools.highlightQuery": false,
+  "editor.renderLineHighlight": "none",
   "[python]": {
     "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.formatOnSave": true,
@@ -10,7 +12,7 @@
   },
   "[sql]": {
     "editor.defaultFormatter": "bradymholt.pgformatter",
-    "editor.formatOnSave": true
+    "editor.formatOnSave": false
   },
   "pgFormatter.spaces": 2,
   "editor.tabSize": 2,
@@ -22,17 +24,6 @@
   "pgFormatter.functionCase": "lowercase",
   "pgFormatter.typeCase": "lowercase",
   "sqltools.connections": [
-    {
-      "ssh": "Disabled",
-      "previewLimit": 100,
-      "server": "localhost",
-      "port": 5432,
-      "driver": "PostgreSQL",
-      "name": "tucson crime",
-      "database": "tucson_crime",
-      "username": "tom",
-      "password": ""
-    },
     {
       "ssh": "Disabled",
       "previewLimit": 100,
@@ -49,6 +40,17 @@
           "rejectUnauthorized": false
         }
       }
+    },
+    {
+      "ssh": "Disabled",
+      "previewLimit": 100,
+      "server": "localhost",
+      "port": 5432,
+      "driver": "PostgreSQL",
+      "name": "tucson_crime_local",
+      "database": "tucson_crime_local",
+      "username": "tom",
+      "askForPassword": true
     }
   ]
 }

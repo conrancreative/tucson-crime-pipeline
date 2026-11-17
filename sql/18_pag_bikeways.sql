@@ -27,7 +27,12 @@ select objectid
     , payload->'properties'->>'STREET' as street
     , payload->'properties'->>'BIKERTE_CD' as facility_code
     , payload->'properties'->>'NAME_BKWY' as bikeway_name
-    , payload->'properties'->>'BIKERTE_DS' as facility_description
+    , case
+        when payload->'properties'->>'BIKERTE_DS' is null
+          or payload->'properties'->>'BIKERTE_DS' ~* '^[[:space:]]*(<null>)?[[:space:]]*$'
+        then payload->'properties'->>'Display'
+        else payload->'properties'->>'BIKERTE_DS'
+      end as facility_description
     , payload->'properties'->>'Display' as facility_type
     , payload->'properties'->>'Verify' as verify_status
     , nullif(payload->'properties'->>'Length_feet', '')::double precision as length_feet

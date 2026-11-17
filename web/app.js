@@ -143,9 +143,10 @@ function show(view) {
   document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === "view-" + view));
   document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.view === view));
   // the count/date subbar + latest banner only make sense for the map & table
-  document.querySelector(".subbar").style.display = view === "sources" ? "none" : "";
-  document.getElementById("latest").style.display = view === "sources" ? "none" : "";
+  document.querySelector(".subbar").style.display = (view === "sources" || view === "routes") ? "none" : "";
+  document.getElementById("latest").style.display = (view === "sources" || view === "routes") ? "none" : "";
   if (view === "map") setTimeout(() => map.invalidateSize(), 0);
+  document.dispatchEvent(new CustomEvent("viewchange", { detail: view }));
 }
 document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
   track("tab_view", {                            // custom event: which tab was opened

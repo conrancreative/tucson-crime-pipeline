@@ -207,3 +207,39 @@ sql/
 requirements.txt
 .env                    # DB connection (gitignored)
 ```
+
+## Local bike-route playground
+
+On the `bike-route-data` branch, the **Bike routes** tab reads the local
+`tucson_crime_local` PostgreSQL database through a small preview server.
+The existing theft and Sources tabs retain their hosted Supabase reads.
+
+With PostgreSQL running, set the root `.env` to
+`DATABASE_URL=postgresql:///tucson_crime_local?user=tom`, then run:
+
+```bash
+npm run build
+.venv/bin/python preview_server.py
+```
+
+Open <http://localhost:8000> and select **Bike routes**. Stop any existing server
+on port 8000 before starting this one. The standard `npm run serve` static server
+does not provide the bike-data endpoint.
+
+All facility types, push-button crossings, and TuGo stations start visible. Use
+the type checkboxes, Show all / Hide all, and the separate crossing and station
+toggles to explore. Hover over a TuGo station for bikes and dock spaces available,
+or click it for the same details on touch devices. Availability comes from the
+local GBFS snapshot; the tooltip shows its Arizona-local timestamp.
+Click a line or crossing for its source details. Fit network shows the full
+dataset extent. Mileage totals sum source segment lengths and can include
+overlapping corridors.
+
+After editing and applying local SQL views, click **Reload local data**.
+After editing JavaScript or HTML, refresh the browser. After editing
+`src/input.css`, rebuild CSS or run `npm run dev` in another terminal.
+
+The preview serves only `web/` on localhost. Its read-only database endpoint
+requires the local database and serves complete GeoJSON without REST row limits.
+The playground tab is shown on localhost. Publishing it later requires choosing
+a public read endpoint or generated GeoJSON and reviewing source-data quality.

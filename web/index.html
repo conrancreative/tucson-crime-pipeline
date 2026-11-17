@@ -120,6 +120,7 @@
     <nav class="flex gap-1">
       <button class="tab on" data-view="map">Map</button>
       <button class="tab" data-view="table">Table</button>
+      <button class="tab" data-view="routes" hidden>Bike routes</button>
       <button class="tab" data-view="sources">Sources</button>
     </nav>
   </header>
@@ -144,6 +145,34 @@
   <section id="view-map" class="view active">
     <div id="map"></div>
     <div id="status">Loading…</div>
+  </section>
+
+  <section id="view-routes" class="view" aria-label="Bike routes playground">
+    <aside class="route-panel">
+      <details open>
+        <summary>Route types</summary>
+        <div class="route-actions">
+          <button id="routes-all" type="button">Show all</button>
+          <button id="routes-none" type="button">Hide all</button>
+        </div>
+        <div id="route-filters"></div>
+        <label class="route-crossing-toggle">
+          <input id="route-crossings" type="checkbox" checked>
+          <span class="crossing-key" aria-hidden="true">🚦</span>
+          Push-button crossings
+        </label>
+        <label class="route-station-toggle">
+          <input id="route-stations" type="checkbox" checked>
+          <span class="station-key" aria-hidden="true">🚲</span>
+          TuGo bike stations
+        </label>
+      </details>
+      <p id="route-summary" role="status">Loading local bike data…</p>
+      <p id="route-snapshot"></p>
+      <button id="routes-fit" type="button">Fit network</button>
+      <button id="routes-reload" type="button">Reload local data</button>
+    </aside>
+    <div id="routes-map" aria-label="Tucson bicycle routes map"></div>
   </section>
 
   <section id="view-table" class="view">
@@ -187,6 +216,7 @@
     const YEAR = 2026;
   </script>
   <script src="app.js"></script>
+  <script src="bike-routes.js"></script>
 </body>
 
 </html>
