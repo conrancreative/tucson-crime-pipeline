@@ -1,33 +1,54 @@
 {
-    // Don't auto-format .sql on save — SQLTools' formatter reflows our hand-laid
-    // seed files. Turn it off for SQL only; other languages still format on save.
-    "[sql]": {
-        "editor.formatOnSave": false
+  "workbench.colorTheme": "Solarized Dark",
+  "editor.fontSize": 18,
+  "terminal.integrated.fontSize": 18,
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true
+  },
+  "[sql]": {
+    "editor.defaultFormatter": "bradymholt.pgformatter",
+    "editor.formatOnSave": true
+  },
+  "pgFormatter.spaces": 2,
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": false,
+  "pgFormatter.commaStart": true,
+  "pgFormatter.commaEnd": false,
+  "pgFormatter.keywordCase": "lowercase",
+  "pgFormatter.functionCase": "lowercase",
+  "pgFormatter.typeCase": "lowercase",
+  "sqltools.connections": [
+    {
+      "ssh": "Disabled",
+      "previewLimit": 100,
+      "server": "localhost",
+      "port": 5432,
+      "driver": "PostgreSQL",
+      "name": "tucson crime",
+      "database": "tucson_crime",
+      "username": "tom",
+      "password": ""
     },
-    "sqltools.connections": [
-        {
-            "ssh": "Disabled",
-            "previewLimit": 100,
-            "server": "localhost",
-            "port": 5432,
-            "driver": "PostgreSQL",
-            "name": "tucson crime",
-            "database": "tucson_crime",
-            "username": "tom",
-            "password": ""
-        },
-        {
-            "ssh": "Disabled",
-            "previewLimit": 100,
-            "server": "aws-0-us-west-2.pooler.supabase.com",
-            "port": 5432,
-            "driver": "PostgreSQL",
-            "name": "tucson crime (supabase)",
-            "database": "postgres",
-            "username": "postgres.zcbcweteictqafpipkuk",
-            "askForPassword": true,
-            "connectionTimeout": 30,
-            "pgOptions": { "ssl": { "rejectUnauthorized": false } }
+    {
+      "ssh": "Disabled",
+      "previewLimit": 100,
+      "server": "aws-0-us-west-2.pooler.supabase.com",
+      "port": 5432,
+      "driver": "PostgreSQL",
+      "name": "tucson crime (supabase)",
+      "database": "postgres",
+      "username": "postgres.zcbcweteictqafpipkuk",
+      "askForPassword": true,
+      "connectionTimeout": 30,
+      "pgOptions": {
+        "ssl": {
+          "rejectUnauthorized": false
         }
-    ]
+      }
+    }
+  ]
 }
