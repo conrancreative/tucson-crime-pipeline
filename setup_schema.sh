@@ -22,4 +22,5 @@ cd "$(dirname "$0")"
   sql/16_ingest_heartbeat.sql \
   sql/14_api_data_sources.sql \
   sql/18_pag_bikeways.sql \
-  sql/19_pag_bikemap_and_tugo.sql
+  sql/19_pag_bikemap_and_tugo.sql \
+  sql/20_roadway_context.sql

@@ -79,3 +79,9 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python pull_tugo_gbfs.py
+
+      - name: Refresh bicycle stress and roadway context
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python pull_roadway_context.py

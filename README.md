@@ -243,3 +243,55 @@ The preview serves only `web/` on localhost. Its read-only database endpoint
 requires the local database and serves complete GeoJSON without REST row limits.
 The playground tab is shown on localhost. Publishing it later requires choosing
 a public read endpoint or generated GeoJSON and reviewing source-data quality.
+
+## Roadway context and bicycle traffic stress
+
+Apply the schema and import the six public GIS layers into the database selected
+by the root `.env`:
+
+```bash
+./apply_sql.sh sql/20_roadway_context.sql
+.venv/bin/python pull_roadway_context.py
+```
+
+`pull_roadway_context.py` reuses the existing ArcGIS paging and retry code.
+It validates complete, unique feature counts and line geometry before replacing
+all six layers in one transaction. Failed imports retain the previous snapshot.
+Full GeoJSON attributes and indexed WGS84 geometry are stored in
+`raw_roadway_features`. Layer metadata and upstream URLs are retained in
+`roadway_source_snapshots`.
+
+Query these private views in SQLTools:
+
+| View | Contents |
+| --- | --- |
+| `preview_bicycle_stress` | PAG BLTS layers 7–10, with street, speed, lanes, AADT, facility type, and left/right/combined stress scores |
+| `preview_road_speed_limits` | City posted day/night speeds and road IDs |
+| `preview_road_classification` | Move Tucson street types, federal classification, and bicycle-priority overlays |
+| `preview_roadway_sources` | Source URLs, row counts, local import times, upstream edit dates where supplied, and source descriptions |
+
+```sql
+select
+  stress_level
+  , count(*) as segments
+  , round(avg(speed_limit_mph)::numeric, 1) as average_posted_speed
+from preview_bicycle_stress
+group by stress_level
+order by stress_level;
+```
+
+Sources:
+- PAG: https://maps.pagregion.com/server/rest/services/RATP/Level_of_Traffic_Stress/MapServer (layers 7, 8, 9, 10).
+- City of Tucson: https://services3.arcgis.com/9coHY2fvuFjG9HQX/arcgis/rest/services/Speed_Limits/FeatureServer/9.
+- City of Tucson / Move Tucson: https://services3.arcgis.com/9coHY2fvuFjG9HQX/arcgis/rest/services/Move_Tucson_Street_Types_with_Federal_Functional_Classification/FeatureServer/0.
+
+PAG's documented stress-analysis inputs include road and speed datasets from
+2021, federal classification from 2023, and City bicycle-boulevard data from 2024.
+The AADT fields belong to this analysis snapshot. They are not a new live import
+of the separate PAG traffic-count portal. A recent download does not establish
+that all measurements or stress classifications are current. Missing source
+values remain null. Use `properties` to inspect additional source attributes.
+
+The scheduled ingest workflow includes this import. Apply the schema to the
+hosted target before enabling that workflow change in production. This branch's
+local setup does not apply it to Supabase or change the public map.
