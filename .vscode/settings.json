@@ -46,11 +46,11 @@
       "previewLimit": 100,
       "server": "localhost",
       "port": 5432,
+      "askForPassword": true,
       "driver": "PostgreSQL",
-      "name": "tucson_crime_local",
-      "database": "tucson_crime_local",
-      "username": "tom",
-      "askForPassword": true
+      "name": "tucson_bikes_local",
+      "database": "tucson_bikes_local",
+      "username": "tom"
     }
   ]
 }

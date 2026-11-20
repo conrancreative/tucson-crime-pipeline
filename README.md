@@ -1,5 +1,8 @@
 # Tucson Bike Crime Pipeline
 
+The shared Tucson Bikes foundation, beta environment, naming proposal, and
+learning milestones are documented in [PROJECT_PLAN.md](PROJECT_PLAN.md).
+
 A data pipeline and (soon) web map showing **reported bicycle thefts in Tucson, AZ**,
 sourced live from the Tucson Police Department's public ArcGIS layers.
 
@@ -211,11 +214,11 @@ requirements.txt
 ## Local bike-route playground
 
 On the `bike-route-data` branch, the **Bike routes** tab reads the local
-`tucson_crime_local` PostgreSQL database through a small preview server.
+`tucson_bikes_local` PostgreSQL database through a small preview server.
 The existing theft and Sources tabs retain their hosted Supabase reads.
 
 With PostgreSQL running, set the root `.env` to
-`DATABASE_URL=postgresql:///tucson_crime_local?user=tom`, then run:
+`DATABASE_URL=postgresql:///tucson_bikes_local?user=tom`, then run:
 
 ```bash
 npm run build
