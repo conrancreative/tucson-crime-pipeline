@@ -4,8 +4,9 @@
 
 Tom is stopping for today. Continue refining the accuracy and usability of the
 documented infrastructure map before proceeding to a production routing engine.
-The working branch is `bicycle-access-rules`; save/push this checkpoint without
-merging into `bike-route-data` or production. Check Git status when resuming.
+The working branch is `bicycle-access-rules`. Implementation checkpoint
+`e26e2d5` is committed and pushed, with no merge into `bike-route-data` or
+production. Check Git status when resuming.
 
 Read this file, `PROJECT_PLAN.md`, and `docs/BIKEWAY_INVENTORY.md`. The current
 checkout and local database remain `/Users/tom/tucson-crime-pipeline` and

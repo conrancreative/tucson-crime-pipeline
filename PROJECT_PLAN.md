@@ -140,8 +140,9 @@ and SQL prefix `tucson_bikes`. Apply resource renames as individual learning ste
 ## Current checkpoint
 
 - `bike-route-data` is saved on GitHub through merge `6af7d2e`. The documented
-  inventory and preceding commute inspection work are local and uncommitted on
-  `bicycle-access-rules`.
+  inventory and route inspection work are committed and pushed on
+  `bicycle-access-rules` through implementation checkpoint `e26e2d5`; this branch
+  has not been merged. See the session handoff for tomorrow's starting point.
 - The local infrastructure map includes bikeways, crossings, and TuGo stations.
 - `tucson_bikes_local` contains 80,300 newly imported roadway-context records.
 - The roadway importer, private preview views, setup script, and future daily
