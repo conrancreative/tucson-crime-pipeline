@@ -14,6 +14,9 @@
 @import "tailwindcss" source(none);
 @source "../web/index.html";
 @source "../web/app.js";
+@source "../web/routes/index.html";
+@source "../web/bike-routes.js";
+@source "../web/shared/common.js";
 
 @theme {
   --color-bg: #ffffff;

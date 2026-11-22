@@ -211,41 +211,52 @@ requirements.txt
 .env                    # DB connection (gitignored)
 ```
 
-## Local bike-route playground
+## Local frontends and shared code
 
-On the `bike-route-data` branch, the **Bike routes** tab reads the local
-`tucson_bikes_local` PostgreSQL database through a small preview server.
-The existing theft and Sources tabs retain their hosted Supabase reads.
+The theft site is at <http://localhost:8000/>. The standalone infrastructure app
+is at <http://localhost:8000/routes/>. Each page has its own markup and startup
+script. The theft page links to the route explorer in local previews.
 
-With PostgreSQL running, set the root `.env` to
-`DATABASE_URL=postgresql:///tucson_bikes_local?user=tom`, then run:
+With PostgreSQL running and `DATABASE_URL=postgresql:///tucson_bikes_local?user=tom`
+in the root `.env`, start the full preview:
 
 ```bash
-npm run build
-.venv/bin/python preview_server.py
+npm run preview
 ```
 
-Open <http://localhost:8000> and select **Bike routes**. Stop any existing server
-on port 8000 before starting this one. The standard `npm run serve` static server
-does not provide the bike-data endpoint.
+This builds the shared stylesheet and serves both pages plus the local bike-data
+endpoint. The server binds to localhost and serves files only from `web/`.
+Stop an existing server on port 8000 before starting another. `npm run serve`
+remains a static-only server; use `npm run preview` for local database-backed maps.
 
-All facility types, push-button crossings, and TuGo stations start visible. Use
-the type checkboxes, Show all / Hide all, and the separate crossing and station
-toggles to explore. Hover over a TuGo station for bikes and dock spaces available,
-or click it for the same details on touch devices. Availability comes from the
-local GBFS snapshot; the tooltip shows its Arizona-local timestamp.
-Click a line or crossing for its source details. Fit network shows the full
-dataset extent. Mileage totals sum source segment lengths and can include
-overlapping corridors.
+| File | Responsibility |
+| --- | --- |
+| `web/index.html`, `web/app.js` | Theft map, table, sources, and theft-specific filtering |
+| `web/routes/index.html`, `web/bike-routes.js` | Standalone infrastructure explorer and its controls |
+| `web/shared/common.js` | Text escaping, app height, basemap, ward colors, conversion, and drawing |
+| `src/input.css` | Shared design tokens and feature component styles |
+| `preview_server.py` | Local read-only bike GeoJSON and ward endpoint |
 
-After editing and applying local SQL views, click **Reload local data**.
-After editing JavaScript or HTML, refresh the browser. After editing
-`src/input.css`, rebuild CSS or run `npm run dev` in another terminal.
+The routes app starts immediately and requests `/api/bike-routes`. Its endpoint
+can be configured through `data-endpoint` on `#view-routes`. It loads no theft
+script or Supabase crime data. The theft frontend retains its hosted Supabase
+reads, including wards. Both use the same basemap and ward renderer.
 
-The preview serves only `web/` on localhost. Its read-only database endpoint
-requires the local database and serves complete GeoJSON without REST row limits.
-The playground tab is shown on localhost. Publishing it later requires choosing
-a public read endpoint or generated GeoJSON and reviewing source-data quality.
+All route types, crossings, and TuGo stations start visible. The type checkboxes
+and Show all / Hide all control bikeways; crossings and stations have individual
+toggles. Hover or click stations for availability and refresh time. SMART
+designation appears beneath the station name. Availability comes from local GBFS
+snapshots. Fit network shows the complete source extent, which extends beyond
+central Tucson. Mileage sums source segments and can include overlapping roads.
+
+After applying SQL locally, click **Reload local data**. Refresh the browser
+after JavaScript or HTML changes. Run `npm run build` after CSS changes, or
+`npm run dev` in another terminal while editing.
+
+The routes page is marked noindex during development. The future beta hostname,
+authentication, and hosted read endpoint require their own release configuration.
+The Pages workflow builds CSS before uploading `web/`; publishing the static
+routes page alone does not provide its database API.
 
 ## Roadway context and bicycle traffic stress
 

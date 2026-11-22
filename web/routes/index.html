@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Google Tag Manager -->
+  <script>(function (w, d, s, l, i) {
+      w[l] = w[l] || []; w[l].push({
+        'gtm.start':
+          new Date().getTime(), event: 'gtm.js'
+      }); var f = d.getElementsByTagName(s)[0],
+        j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+          'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+    })(window, document, 'script', 'dataLayer', 'GTM-WWPK4XFK');</script>
+  <!-- End Google Tag Manager -->
+
+  <title>Tucson Bike Routes: Explore Tucson Bicycle Infrastructure</title>
+
+  <!-- favicon: 🚲 emoji as an inline SVG (no image asset needed) -->
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>%F0%9F%9A%B2</text></svg>">
+
+  <!-- If you're inspecting this site, welcome! I hope you find it useful :) -->
+
+  <!-- SEO -->
+  <meta name="description"
+    content="Explore Tucson bikeways, ward boundaries, signal crossings, and TuGo stations.">
+  <link rel="canonical" href="https://bikes.thomaspconran.com/routes/">
+  <meta name="robots" content="noindex, follow">
+  <meta name="theme-color" content="#e8833a">
+
+  <!-- Open Graph (Facebook, iMessage, Slack, LinkedIn) -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Tucson Bike Routes">
+  <meta property="og:description"
+    content="Explore Tucson bikeways, ward boundaries, signal crossings, and TuGo stations.">
+  <meta property="og:url" content="https://bikes.thomaspconran.com/routes/">
+  <meta property="og:image" content="https://bikes.thomaspconran.com/og-image.png">
+  <meta property="og:site_name" content="Tucson Bike Routes">
+
+  <!-- Twitter/X FUCK ELON MUSK-->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Tucson Bike Routes">
+  <meta name="twitter:description"
+    content="Explore Tucson bikeways, ward boundaries, signal crossings, and TuGo stations.">
+  <meta name="twitter:image" content="https://bikes.thomaspconran.com/og-image.png">
+
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <link rel="stylesheet" href="../styles.css">
+</head>
+
+<body>
+  <header
+    class="flex flex-wrap items-center gap-5 border-b border-line px-5 py-3 max-[640px]:gap-2.5 max-[640px]:px-3.5 max-[640px]:py-2.5 max-[450px]:flex-col max-[450px]:gap-2">
+    <div class="flex items-center gap-2.5 max-[640px]:gap-1">
+      <span class="leading-none text-[28px] max-[640px]:text-[22px]" aria-hidden="true">🚲</span>
+      <h1 class="m-0 text-[16px] font-bold tracking-[-0.01em] max-[640px]:text-[15px]">Tucson Bike Routes</h1>
+    </div>
+    <nav aria-label="Tucson Bikes">
+      <a class="tab" href="../">Theft map</a>
+    </nav>
+  </header>
+
+  <section id="view-routes" class="view active" aria-label="Bike routes playground" data-endpoint="/api/bike-routes">
+    <aside class="route-panel">
+      <details open>
+        <summary>Route types</summary>
+        <div class="route-actions">
+          <button id="routes-all" type="button">Show all</button>
+          <button id="routes-none" type="button">Hide all</button>
+        </div>
+        <div id="route-filters"></div>
+        <label class="route-crossing-toggle">
+          <input id="route-crossings" type="checkbox" checked>
+          <span class="crossing-key" aria-hidden="true">🚦</span>
+          Push-button crossings
+        </label>
+        <label class="route-station-toggle">
+          <input id="route-stations" type="checkbox" checked>
+          <span class="station-key" aria-hidden="true">🚲</span>
+          TuGo bike stations
+        </label>
+        <label class="route-filter">
+          <input id="route-wards" type="checkbox">
+          Ward boundaries
+        </label>
+      </details>
+      <p id="route-summary" role="status">Loading local bike data…</p>
+      <p id="route-snapshot"></p>
+      <button id="routes-fit" type="button">Fit network</button>
+      <button id="routes-reload" type="button">Reload local data</button>
+    </aside>
+    <div id="routes-map" aria-label="Tucson bicycle routes map"></div>
+  </section>
+
+  <script src="../shared/common.js"></script>
+  <script src="../bike-routes.js"></script>
+</body>
+</html>

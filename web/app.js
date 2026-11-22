@@ -2,16 +2,6 @@
 // SUPABASE_ANON_KEY, YEAR) defined in an inline <script> in index.html, which
 // loads before this file. Leaflet (global `L`) loads in the <head>.
 
-// Size the app to the actual visible height. iOS reports window.innerHeight
-// correctly (unlike 100vh/100dvh at load), so drive layout from it and keep
-// it in sync on rotate/resize; snap scroll to top in case anything nudged it.
-const setAppHeight = () => {
-  document.documentElement.style.setProperty("--app-height", window.innerHeight + "px");
-  window.scrollTo(0, 0);
-};
-setAppHeight();
-["resize", "orientationchange", "pageshow"].forEach(e => window.addEventListener(e, setAppHeight));
-
 const apiHeaders = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` };
 
 // push a custom event to GTM's dataLayer (safe no-op if GTM is blocked/absent)
@@ -23,23 +13,13 @@ const IS_MOBILE = window.matchMedia("(max-width: 640px)").matches;
 const DOT_RADIUS = IS_MOBILE ? 10 : 8;
 const DOT_FILL = IS_MOBILE ? 0.7 : 0.9;
 
-// grayscale basemap — only the markers carry color
-const map = L.map("map", { zoomControl: true }).setView([32.221, -110.955], 12);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  maxZoom: 19,
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-}).addTo(map);
+// Shared grayscale basemap and geographic defaults.
+const map = createTucsonMap("map");
 
 // dot colors by source: TPD (city) vs UAPD (University of Arizona PD)
 const TPD_COLOR = "#e8833a";   // existing orange accent
 const UA_COLOR = "#AB0520";   // UA cardinal red
 const dotColor = src => (src === "UAPD" ? UA_COLOR : TPD_COLOR);
-
-// wards go in a lower pane so the theft dots sit on top and stay clickable
-map.createPane("wards");
-map.getPane("wards").style.zIndex = 350;        // ward fills, below the overlay pane (400)
-map.createPane("wardlabels");
-map.getPane("wardlabels").style.zIndex = 360;   // big ward numbers, above fills but below dots
 
 // ---- ward selection: click a ward → zoom in + filter to its dots --------
 const crimesLayer = L.layerGroup().addTo(map);
@@ -139,12 +119,11 @@ function show(view) {
   document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === "view-" + view));
   document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.view === view));
   // the count/date subbar + latest banner only make sense for the map & table
-  document.querySelector(".subbar").style.display = (view === "sources" || view === "routes") ? "none" : "";
-  document.getElementById("latest").style.display = (view === "sources" || view === "routes") ? "none" : "";
+  document.querySelector(".subbar").style.display = view === "sources" ? "none" : "";
+  document.getElementById("latest").style.display = view === "sources" ? "none" : "";
   if (view === "map") setTimeout(() => map.invalidateSize(), 0);
-  document.dispatchEvent(new CustomEvent("viewchange", { detail: view }));
 }
-document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
+document.querySelectorAll(".tab[data-view]").forEach(t => t.onclick = () => {
   track("tab_view", {                            // custom event: which tab was opened
     tab: t.dataset.view,
     filter_active: selectedWard != null,         // was a ward filter applied?
@@ -182,8 +161,6 @@ const setStatus = (m, err) => {
   statusEl.style.display = m ? "block" : "none";
   if (m) { statusEl.textContent = m; statusEl.classList.toggle("err", !!err); }
 };
-const esc = s => (s == null ? "" : String(s)).replace(/[&<>"]/g,
-  c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const fmtDate = az => {
   if (!az) return "Unknown";
   const d = new Date(az.replace(" ", "T"));
