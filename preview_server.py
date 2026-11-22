@@ -35,8 +35,14 @@ def bike_route_data():
         with connection.cursor() as cursor:
             cursor.execute("select current_database(), inet_server_addr()::text")
             database, address = cursor.fetchone()
-            if database != "tucson_crime_local" or address not in (None, "127.0.0.1", "::1"):
-                raise ValueError("Set DATABASE_URL to your local tucson_crime_local database.")
+            if database != "tucson_bikes_local" or address not in (
+                None,
+                "127.0.0.1",
+                "::1",
+            ):
+                raise ValueError(
+                    "Set DATABASE_URL to your local tucson_bikes_local database."
+                )
 
             cursor.execute("""
                 select objectid, street, facility_type, facility_description
@@ -46,18 +52,28 @@ def bike_route_data():
             """)
             routes = []
             timestamps = []
-            for objectid, street, kind, description, miles, geometry, pulled_at in cursor:
-                routes.append({
-                    "type": "Feature",
-                    "id": objectid,
-                    "geometry": geometry,
-                    "properties": {
-                        "street": street,
-                        "facility_type": kind or "Unclassified",
-                        "facility_description": description,
-                        "length_miles": miles,
-                    },
-                })
+            for (
+                objectid,
+                street,
+                kind,
+                description,
+                miles,
+                geometry,
+                pulled_at,
+            ) in cursor:
+                routes.append(
+                    {
+                        "type": "Feature",
+                        "id": objectid,
+                        "geometry": geometry,
+                        "properties": {
+                            "street": street,
+                            "facility_type": kind or "Unclassified",
+                            "facility_description": description,
+                            "length_miles": miles,
+                        },
+                    }
+                )
                 timestamps.append(pulled_at)
 
             cursor.execute("""
@@ -70,12 +86,14 @@ def bike_route_data():
             """)
             crossings = []
             for object_id, properties, geometry, pulled_at in cursor:
-                crossings.append({
-                    "type": "Feature",
-                    "id": object_id,
-                    "geometry": geometry,
-                    "properties": properties,
-                })
+                crossings.append(
+                    {
+                        "type": "Feature",
+                        "id": object_id,
+                        "geometry": geometry,
+                        "properties": properties,
+                    }
+                )
                 timestamps.append(pulled_at)
 
             cursor.execute("""
@@ -87,20 +105,40 @@ def bike_route_data():
                 order by station_id
             """)
             stations = []
-            for station_id, name, address, lat, lon, bikes, docks, reported, captured in cursor:
-                stations.append({
-                    "type": "Feature",
-                    "id": station_id,
-                    "geometry": {"type": "Point", "coordinates": [lon, lat]},
-                    "properties": {
-                        "name": station_name(name, address),
-                        "is_smart": bool(re.search(r"\bSMART\b", f"{name or ''} {address or ''}", re.I)),
-                        "bikes_available": bikes,
-                        "spots_available": docks,
-                        "status_reported_at": reported.isoformat() if reported else None,
-                        "status_captured_at": captured.isoformat() if captured else None,
-                    },
-                })
+            for (
+                station_id,
+                name,
+                address,
+                lat,
+                lon,
+                bikes,
+                docks,
+                reported,
+                captured,
+            ) in cursor:
+                stations.append(
+                    {
+                        "type": "Feature",
+                        "id": station_id,
+                        "geometry": {"type": "Point", "coordinates": [lon, lat]},
+                        "properties": {
+                            "name": station_name(name, address),
+                            "is_smart": bool(
+                                re.search(
+                                    r"\bSMART\b", f"{name or ''} {address or ''}", re.I
+                                )
+                            ),
+                            "bikes_available": bikes,
+                            "spots_available": docks,
+                            "status_reported_at": reported.isoformat()
+                            if reported
+                            else None,
+                            "status_captured_at": captured.isoformat()
+                            if captured
+                            else None,
+                        },
+                    }
+                )
 
     return {
         "routes": {"type": "FeatureCollection", "features": routes},
@@ -118,7 +156,9 @@ class PreviewHandler(SimpleHTTPRequestHandler):
             data = bike_route_data()
             status = 200
         except (psycopg2.Error, KeyError, ValueError):
-            data = {"error": "Unable to load local bike data. Check PostgreSQL and DATABASE_URL in .env."}
+            data = {
+                "error": "Unable to load local bike data. Check PostgreSQL and DATABASE_URL in .env."
+            }
             status = 503
         body = json.dumps(data, allow_nan=False).encode()
         self.send_response(status)
