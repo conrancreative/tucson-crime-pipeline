@@ -20,6 +20,7 @@
   const groups = new Map();
   let routeMap;
   let crossingLayer;
+  let wardLayer;
   let stationLayer;
   let networkBounds;
   let crossingCount = 0;
@@ -58,6 +59,8 @@
 
       groups.forEach(group => routeMap.removeLayer(group.layer));
       if (crossingLayer) routeMap.removeLayer(crossingLayer);
+      if (wardLayer) routeMap.removeLayer(wardLayer);
+      wardLayer = drawWards(routeMap, data.wards);
       if (stationLayer) routeMap.removeLayer(stationLayer);
       groups.clear();
       filters.replaceChildren();
@@ -163,6 +166,11 @@
     if (event.detail !== "routes") return;
     if (!routeMap) {
       routeMap = L.map("routes-map", { preferCanvas: true }).setView([32.221, -110.955], 12);
+      routeMap.createPane("wards");
+      routeMap.getPane("wards").style.zIndex = 350;
+
+      routeMap.createPane("wardlabels");
+      routeMap.getPane("wardlabels").style.zIndex = 360;
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · Bikeways and crossings: PAG'
