@@ -278,7 +278,7 @@ async function loadWards() {
       pane: "wards",
       style: f => ({
         color: wardColor(f.properties.ward), weight: 1.5, opacity: 0.85,
-        fillColor: wardColor(f.properties.ward), fillOpacity: 0.20
+        fillColor: wardColor(f.properties.ward), fillOpacity: 0.30
       }),
       onEachFeature: (f, layer) => {
         layer.bindTooltip(`<span style="color:${wardColor(f.properties.ward)}">${esc(f.properties.ward)}</span>`,
