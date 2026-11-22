@@ -30,10 +30,6 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 }).addTo(map);
 
-// ward colors — shared by the map overlays AND the table key for consistency
-const WARD_COLORS = { "1": "#4E79A7", "2": "#59A14F", "3": "#8158B0", "4": "#C94F9C", "5": "#76B7B2", "6": "#E24A43" };
-const wardColor = w => WARD_COLORS[w] || "#9ca3af";
-
 // dot colors by source: TPD (city) vs UAPD (University of Arizona PD)
 const TPD_COLOR = "#e8833a";   // existing orange accent
 const UA_COLOR = "#AB0520";   // UA cardinal red
