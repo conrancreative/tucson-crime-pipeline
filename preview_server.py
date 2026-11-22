@@ -43,7 +43,19 @@ def bike_route_data():
                 raise ValueError(
                     "Set DATABASE_URL to your local tucson_bikes_local database."
                 )
-
+            cursor.execute("""
+                select ward, council_member, geometry
+                from api_wards
+                order by ward
+            """)
+            wards = [
+                {
+                    "ward": ward,
+                    "council_member": council_member,
+                    "geometry": geometry,
+                }
+                for ward, council_member, geometry in cursor.fetchall()
+            ]
             cursor.execute("""
                 select objectid, street, facility_type, facility_description
                     , length_miles, geometry, pulled_at
@@ -144,6 +156,7 @@ def bike_route_data():
         "routes": {"type": "FeatureCollection", "features": routes},
         "crossings": {"type": "FeatureCollection", "features": crossings},
         "stations": {"type": "FeatureCollection", "features": stations},
+        "wards": wards,
         "snapshot_at": min(timestamps).isoformat() if timestamps else None,
     }
 
