@@ -262,26 +262,7 @@ async function loadWards() {
     if (!res.ok) return;
     const wards = await res.json();
     wards.forEach(w => { if (w.council_member) wardMembers[w.ward] = w.council_member; });
-    const fc = {
-      type: "FeatureCollection",
-      features: wards.map(w => ({
-        type: "Feature",
-        properties: { ward: w.ward, member: w.council_member },
-        geometry: w.geometry
-      }))
-    };
-    L.geoJSON(fc, {
-      pane: "wards",
-      style: f => ({
-        color: wardColor(f.properties.ward), weight: 1.5, opacity: 0.85,
-        fillColor: wardColor(f.properties.ward), fillOpacity: 0.30
-      }),
-      onEachFeature: (f, layer) => {
-        layer.bindTooltip(`<span style="color:${wardColor(f.properties.ward)}">${esc(f.properties.ward)}</span>`,
-          { permanent: true, direction: "center", className: "ward-label", pane: "wardlabels", opacity: 0.5 });
-        layer.on("click", () => selectWard(f.properties.ward, f.properties.member, layer));
-      }
-    }).addTo(map);
+    drawWards(map, wards, selectWard);
   } catch (_) { /* wards are optional decoration */ }
 }
 
