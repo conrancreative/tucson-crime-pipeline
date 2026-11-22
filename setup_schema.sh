@@ -24,4 +24,5 @@ cd "$(dirname "$0")"
   sql/18_pag_bikeways.sql \
   sql/19_pag_bikemap_and_tugo.sql \
   sql/20_roadway_context.sql \
-  sql/21_osm_network.sql
+  sql/21_osm_network.sql \
+  sql/22_bikeway_catalog.sql

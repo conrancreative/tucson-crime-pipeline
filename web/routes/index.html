@@ -53,7 +53,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
-  <link rel="stylesheet" href="../styles.css">
+  <link rel="stylesheet" href="../styles.css?v=bikeway-inventory-1">
 </head>
 
 <body>
@@ -63,15 +63,52 @@
       <span class="leading-none text-[28px] max-[640px]:text-[22px]" aria-hidden="true">🚲</span>
       <h1 class="m-0 text-[16px] font-bold tracking-[-0.01em] max-[640px]:text-[15px]">Tucson Bike Routes</h1>
     </div>
-    <nav aria-label="Tucson Bikes">
-      <a class="tab" href="../">Theft map</a>
-    </nav>
   </header>
 
   <section id="view-routes" class="view active" aria-label="Bike routes playground" data-endpoint="/api/bike-routes">
     <aside class="route-panel">
+      <section id="bikeway-inventory" hidden aria-label="Documented bikeway inventory">
+        <h2>Bikeway inventory</h2>
+        <p>Tucson city boundary + 3 miles. Inspect named routes across changing street names.</p>
+        <label class="trace-label" for="bikeway-search">Find a named bikeway</label>
+        <input id="bikeway-search" type="search" placeholder="Name or street, e.g. Treat">
+        <label class="trace-label" for="bikeway-select">Bikeway</label>
+        <select id="bikeway-select"><option value="">All facilities</option></select>
+        <div class="inventory-source-controls">
+          <label><input id="inventory-source-pag" type="checkbox" checked> Agency · solid</label>
+          <label><input id="inventory-source-osm" type="checkbox" checked> OSM · dashed</label>
+        </div>
+        <div id="bikeway-detail" aria-live="polite"></div>
+        <div class="route-actions">
+          <button id="bikeway-fit" type="button">Fit selection</button>
+          <button id="inventory-fit-area" type="button">Study area</button>
+        </div>
+        <p id="inventory-freshness"></p>
+        <details id="inventory-audit">
+          <summary>Coverage and review</summary>
+          <p id="inventory-coverage"></p>
+          <label class="trace-label" for="inventory-issue-type">Review type</label>
+          <select id="inventory-issue-type"><option value="reported_source_update">Reported updates</option></select>
+          <label class="route-filter"><input id="inventory-issues-on" type="checkbox"> Show review markers</label>
+          <p id="inventory-issue-count" role="status"></p>
+          <ol id="inventory-issue-list"></ol>
+          <button id="inventory-issue-more" type="button" hidden>Show more review items</button>
+          <button id="inventory-download" type="button">Download audit JSON</button>
+        </details>
+      </section>
+      <details id="local-traces" hidden>
+        <summary>Route examples · draft</summary>
+        <label class="trace-label" for="local-trace-select">Journey</label>
+        <select id="local-trace-select" disabled>
+          <option value="">No draft overlay</option>
+        </select>
+        <p id="local-trace-status" role="status">Loading examples…</p>
+        <button id="local-trace-fit" type="button" disabled>Fit journey</button>
+        <div id="local-trace-notes"></div>
+        <p class="trace-notice">Draft for checking your ride, not directions. Orange dashed lines need corridor review. Footways remain unverified for riding.</p>
+      </details>
       <details open>
-        <summary>Route types</summary>
+        <summary>Facility types</summary>
         <div class="route-actions">
           <button id="routes-all" type="button">Show all</button>
           <button id="routes-none" type="button">Hide all</button>
@@ -101,6 +138,8 @@
   </section>
 
   <script src="../shared/common.js"></script>
+  <script src="../bikeway-catalog.js"></script>
+  <script src="../local-route-traces.js"></script>
   <script src="../bike-routes.js"></script>
 </body>
 </html>

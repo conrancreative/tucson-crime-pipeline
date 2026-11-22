@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "notes": [
+    {
+      "id": "university-old-main-approach",
+      "osm_way_id": 32967558,
+      "bikeway_name": "3rd Street - University Bike Boulevard",
+      "description": "Rider reports the straight East University approach across Bear Down toward Old Main is a dedicated bicycle connection. The imported OSM way says bicycle=dismount and is absent from the named bicycle-route relation. Confirm current designation with a newer authoritative source.",
+      "observed_on": "2026-11-22",
+      "source": "Rider observation",
+      "status": "needs_source_verification"
+    },
+    {
+      "id": "sixth-avenue-protected-lane",
+      "coordinates": [-110.9687, 32.2290],
+      "description": "Rider reports newer protected bicycle infrastructure on 6th Avenue. City project materials describe the Speedway-to-7th Street corridor. Verify the completed extent and obtain updated facility geometry; do not classify all of 6th Avenue as protected.",
+      "source_url": "https://tucsondelivers.tucsonaz.gov/pages/6th-ave",
+      "observed_on": "2026-11-22",
+      "source": "Rider observation and City project reference",
+      "status": "needs_source_verification"
+    }
+  ]
+}

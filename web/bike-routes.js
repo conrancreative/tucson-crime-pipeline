@@ -10,7 +10,14 @@
     "Bike Boulevard": "#7e22ce",
     "Bike Lane - Frontage Road": "#be123c",
     "Enhanced Bike Route": "#0e7490",
-    "Separated Bike Lane": "#c2410c"
+    "Separated Bike Lane": "#c2410c",
+    "OSM cycleway": "#15803d",
+    "OSM bicycle street": "#7e22ce",
+    "OSM cycle track": "#c2410c",
+    "OSM bicycle lane": "#2563eb",
+    "OSM shared-lane markings": "#b45309",
+    "OSM bicycle route": "#b45309",
+    "OSM bicycle permission only": "#64748b"
   };
   const summary = document.getElementById("route-summary");
   const filters = document.getElementById("route-filters");
@@ -21,8 +28,9 @@
   const groups = new Map();
   const routeMap = createTucsonMap("routes-map", {
     preferCanvas: true,
-    attribution: " · Infrastructure: PAG, Pima County and City of Tucson · Stations: TuGo"
+    attribution: " · Infrastructure: PAG and OpenStreetMap · Stations: TuGo"
   });
+  const inventory = initBikewayCatalog(routeMap, refreshFacilityLayers);
   let crossingLayer;
   let wardLayer;
   let stationLayer;
@@ -40,7 +48,18 @@
         miles += group.miles;
       }
     });
-    summary.textContent = `${segments.toLocaleString()} segments · ${miles.toLocaleString(undefined, { maximumFractionDigits: 1 })} source miles · ${crossingToggle.checked ? crossingCount : 0} crossings · ${stationToggle.checked ? stationCount : 0} TuGo stations`;
+    summary.textContent = `${segments.toLocaleString()} source sections · ${miles.toLocaleString(undefined, { maximumFractionDigits: 1 })} source miles · ${crossingToggle.checked ? crossingCount : 0} crossings · ${stationToggle.checked ? stationCount : 0} TuGo stations`;
+  }
+
+  function refreshFacilityLayers() {
+    groups.forEach(group => {
+      const visible = group.features.filter(inventory.matches);
+      group.layer.clearLayers();
+      group.layer.addData(visible);
+      group.segments = visible.length;
+      group.miles = visible.reduce((sum, feature) => sum + (Number(feature.properties.length_miles) || 0), 0);
+    });
+    updateSummary();
   }
 
   function setVisible(group, visible) {
@@ -79,10 +98,12 @@
         const color = colors[type] || "#475569";
         const layer = L.geoJSON(features, {
           renderer: L.canvas({ padding: 0.5 }),
-          style: { color, weight: 3.5, opacity: 0.85 },
+          style: feature => ({ color, weight: feature.properties.source === "osm" ? 2.5 : 3.5,
+            opacity: feature.properties.source === "osm" ? .75 : .9,
+            dashArray: feature.properties.source === "osm" ? "6 5" : null }),
           onEachFeature: (feature, segment) => {
             const p = feature.properties;
-            segment.bindPopup(`<div class="d">${esc(p.street || "Unnamed bikeway")}</div><div>${esc(p.facility_type)}</div><div class="s">${esc(p.facility_description || "")}</div>${p.length_miles == null ? "" : `<div>${Number(p.length_miles).toFixed(2)} miles</div>`}`);
+            segment.bindPopup(bikewaySectionPopup(p), { maxWidth: 360 });
           }
         });
         bounds.extend(layer.getBounds());
@@ -99,7 +120,7 @@
         label.append(checkbox, swatch, text);
         filters.append(label);
         const group = {
-          layer, checkbox, segments: features.length,
+          layer, checkbox, features, segments: features.length,
           miles: features.reduce((total, f) => total + (Number(f.properties.length_miles) || 0), 0)
         };
         groups.set(type, group);
@@ -155,8 +176,10 @@
       });
       if (stationToggle.checked) stationLayer.addTo(routeMap);
       networkBounds = bounds;
+      inventory.setData(data);
+      refreshFacilityLayers();
       document.getElementById("route-snapshot").textContent = data.snapshot_at
-        ? `Local snapshot · ${new Date(data.snapshot_at).toLocaleDateString()}` : "";
+        ? `Oldest agency import · ${new Date(data.snapshot_at).toLocaleDateString()}` : "";
       updateSummary();
     } catch (error) {
       summary.textContent = `${error.message} Check the data service and try Reload local data.`;
@@ -197,5 +220,5 @@
   reload.onclick = loadData;
   window.addEventListener("resize", () => routeMap.invalidateSize());
   document.querySelector(".route-panel details").addEventListener("toggle", () => routeMap.invalidateSize());
-  loadData();
+  loadData().then(() => initLocalRouteTraces(routeMap));
 })();

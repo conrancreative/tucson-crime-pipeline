@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "routes": [
+    {
+      "id": "treat-avenue-bikeway",
+      "name": "Treat Avenue Bikeway",
+      "kind": "named_bikeway",
+      "aliases": ["Treat Avenue Bikeway"],
+      "osm_relation_ids": [1023625]
+    },
+    {
+      "id": "third-street-university-bikeway",
+      "name": "3rd Street–University Bikeway",
+      "kind": "named_bikeway",
+      "aliases": [
+        "3rd Street - University Bike Boulevard",
+        "3rd Street - University Bikeway",
+        "3RD STREET - UNIVERSITY BIKE BL"
+      ],
+      "osm_relation_ids": [1023555, 1023596]
+    },
+    {
+      "id": "university-of-arizona-path-network",
+      "name": "University of Arizona path network",
+      "kind": "area_network",
+      "aliases": ["UNIVERSITY OF ARIZONA"]
+    }
+  ]
+}

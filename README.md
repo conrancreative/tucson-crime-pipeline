@@ -309,3 +309,29 @@ values remain null. Use `properties` to inspect additional source attributes.
 The scheduled ingest workflow includes this import. Apply the schema to the
 hosted target before enabling that workflow change in production. This branch's
 local setup does not apply it to Supabase or change the public map.
+
+## Local route inspection drafts
+
+For the full source-documented infrastructure map, see
+[Bikeway inventory](docs/BIKEWAY_INVENTORY.md). After importing the local OSM
+network, run `.venv/bin/python prepare_bikeway_inventory.py` to import bicycle
+route relations and rebuild the private catalog and audit. `/routes/` can then
+inspect named bikeways across street changes with agency/OSM source controls.
+
+`trace_local_routes.py` reconstructs private, user-described corridors from
+shared OSM nodes for visual inspection. It reads `commute-scenarios.json` from
+`~/.cache/tucson-bikes/` and writes `commute-traces.geojson` beside it. Personal
+scenarios and generated journeys stay outside the repository and static assets.
+Run `.venv/bin/python trace_local_routes.py` after editing the local scenarios,
+then reload `/routes/` using `preview_server.py`. The local-only commute panel
+lets you select a draft and inspect source tags and candidate agency matches.
+
+These are physical traces, undirected by default. Scenarios can opt into mapped
+one-way/roundabout checks and exclusion of unverified footways. Full bicycle
+eligibility, turn restrictions, crossings, and stress are not validated. Orange
+dashes mark departures from requested streets or named agency bikeways, not
+absence of bicycle infrastructure. A source bikeway can cross multiple street
+names; `NAME_BKWY` supplies its grouping label, while `OBJECTID` identifies each
+agency record. Close, aligned geometry can establish a provisional candidate
+despite street-label differences. This does not apply riding eligibility or
+transfer a roadway's status to an adjacent sidewalk.

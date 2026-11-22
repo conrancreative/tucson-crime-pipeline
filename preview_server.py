@@ -11,6 +11,8 @@ from urllib.parse import urlsplit
 import psycopg2
 from dotenv import load_dotenv
 
+from bikeway_inventory import inventory_data
+
 ROOT = Path(__file__).resolve().parent
 load_dotenv(ROOT / ".env")
 
@@ -58,7 +60,7 @@ def bike_route_data():
             ]
             cursor.execute("""
                 select objectid, street, facility_type, facility_description
-                    , length_miles, geometry, pulled_at
+                    , length_miles, geometry, pulled_at, bikeway_name
                 from preview_pag_bikeways
                 order by objectid
             """)
@@ -72,6 +74,7 @@ def bike_route_data():
                 miles,
                 geometry,
                 pulled_at,
+                bikeway_name,
             ) in cursor:
                 routes.append(
                     {
@@ -82,6 +85,7 @@ def bike_route_data():
                             "street": street,
                             "facility_type": kind or "Unclassified",
                             "facility_description": description,
+                            "bikeway_name": (bikeway_name or "").strip() or None,
                             "length_miles": miles,
                         },
                     }
@@ -152,18 +156,44 @@ def bike_route_data():
                     }
                 )
 
-    return {
+            inventory = inventory_data(cursor)
+
+    result = {
         "routes": {"type": "FeatureCollection", "features": routes},
         "crossings": {"type": "FeatureCollection", "features": crossings},
         "stations": {"type": "FeatureCollection", "features": stations},
         "wards": wards,
         "snapshot_at": min(timestamps).isoformat() if timestamps else None,
     }
+    if inventory:
+        result.update(inventory)
+    return result
 
 
 class PreviewHandler(SimpleHTTPRequestHandler):
+    def end_headers(self):
+        # Development assets must reflect edits immediately, including when a
+        # browser holds an older stylesheet with a newer cached timestamp.
+        self.send_header("Cache-Control", "no-store")
+        super().end_headers()
+
     def do_GET(self):
+        if urlsplit(self.path).path == "/api/local-route-traces":
+            path = Path.home() / ".cache/tucson-bikes/commute-traces.geojson"
+            if not path.exists():
+                self.send_error(404, "Local route traces have not been generated.")
+                return
+            body = path.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/geo+json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if urlsplit(self.path).path != "/api/bike-routes":
+            for header in ("If-Modified-Since", "If-None-Match"):
+                if header in self.headers:
+                    del self.headers[header]
             return super().do_GET()
         try:
             data = bike_route_data()
@@ -176,7 +206,6 @@ class PreviewHandler(SimpleHTTPRequestHandler):
         body = json.dumps(data, allow_nan=False).encode()
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
-        self.send_header("Cache-Control", "no-store")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)

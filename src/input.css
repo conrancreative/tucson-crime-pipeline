@@ -16,6 +16,8 @@
 @source "../web/app.js";
 @source "../web/routes/index.html";
 @source "../web/bike-routes.js";
+@source "../web/local-route-traces.js";
+@source "../web/bikeway-catalog.js";
 @source "../web/shared/common.js";
 
 @theme {
@@ -802,15 +804,39 @@ a {
 #view-routes { position: relative; }
 #routes-map { flex: 1; min-width: 0; min-height: 0; }
 .route-panel {
-  width: 260px;
+  width: 320px;
   flex: none;
   padding: 18px 16px;
   overflow: auto;
   border-right: 1px solid var(--color-line);
-  font-size: 13px;
+  font-size: 14px;
   background: var(--color-panel);
 }
 .route-panel summary { font-weight: 700; cursor: pointer; }
+#bikeway-inventory { border-bottom: 1px solid var(--color-line); margin-bottom: 18px; padding-bottom: 18px; }
+#bikeway-inventory h2 { font-size: 18px; font-weight: 700; }
+#bikeway-inventory p { line-height: 1.5; margin: 10px 0; }
+#bikeway-search, #bikeway-select, #inventory-issue-type { width: 100%; border: 1px solid var(--color-line); border-radius: 6px; padding: 8px; font-size: 14px; background: white; }
+.inventory-source-controls { display: grid; gap: 8px; margin: 14px 0; font-size: 14px; }
+.inventory-source-controls label { display: flex; gap: 8px; align-items: center; }
+.inventory-source-controls input { width: 16px; height: 16px; }
+#inventory-freshness { color: var(--color-ink-2); font-size: 12px; }
+#inventory-freshness.inventory-stale { color: #9a3412; font-weight: 600; }
+#inventory-audit { margin-top: 16px; }
+#inventory-issue-list { padding-left: 18px; list-style: decimal; }
+#inventory-issue-list li { margin: 14px 0; }
+.source-tags { margin-top: 12px; }
+.source-tags pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 240px; overflow: auto; font-size: 12px; }
+#local-traces { border-bottom: 1px solid var(--color-line); padding-bottom: 18px; margin-bottom: 18px; }
+.trace-label { display: block; margin: 14px 0 6px; font-size: 14px; }
+#local-trace-select { width: 100%; border: 1px solid var(--color-line); border-radius: 6px; padding: 8px; background: white; font-size: 14px; }
+#local-trace-status { font-weight: 600; line-height: 1.5; margin: 12px 0; }
+#local-trace-notes p, .trace-notice { font-size: 13px; line-height: 1.5; margin: 10px 0; }
+.trace-notice { color: var(--color-ink-2); }
+.trace-flags { padding-left: 18px; list-style: disc; color: #9a3412; }
+.route-endpoint-marker { display: grid; place-items: center; border: 2px solid white; border-radius: 50%; color: white; font-size: 14px; font-weight: 700; box-shadow: 0 1px 5px #0006; }
+.route-endpoint-start { background: #047857; }
+.route-endpoint-finish { background: #be123c; }
 .route-actions { display: flex; gap: 8px; margin: 14px 0; }
 .route-panel button {
   font: inherit;

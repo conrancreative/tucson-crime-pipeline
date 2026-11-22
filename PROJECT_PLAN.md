@@ -2,6 +2,9 @@
 
 Updated November 22, 2026.
 
+Latest resume notes: [Session handoff](docs/SESSION_HANDOFF.md). Prioritize
+infrastructure accuracy and usability before starting the production router.
+
 ## Purpose and decisions
 
 Build one Tucson biking site with theft exploration, infrastructure and route
@@ -20,7 +23,9 @@ and SQL prefix `tucson_bikes`. Apply resource renames as individual learning ste
   Keep the import boundary configurable for later expansion to Pima County.
   Evaluate an Arizona OpenStreetMap extract for the base network and preserve
   connectivity around the extraction boundary. Existing agency-layer coverage
-  remains unverified. Network ingestion and routing are not yet implemented.
+  remains unverified. Local OSM extraction and ingestion are implemented and
+  verified: 750,055 nodes, 144,688 ways, and 1,154 restriction relations over a
+  551.3-square-mile study area. Routing graph construction remains future work.
 - Calculate bicycle stress using our own versioned rules and matrix. Preserve
   PAG combined and left/right scores for comparison. Federal functional road
   classification describes road role and is distinct from a bicycle stress score.
@@ -40,9 +45,103 @@ and SQL prefix `tucson_bikes`. Apply resource renames as individual learning ste
   Source: https://maps.pagregion.com/server/rest/services/RATP/Level_of_Traffic_Stress/MapServer/7
   Network extract candidate: https://download.geofabrik.de/north-america/us/arizona.html
 
+### Approved V1 bicycle eligibility policy
+
+- Evaluate candidates in this order: verified existing agency bicycle
+  infrastructure, explicit OSM bicycle permission, then speed and lanes for
+  ordinary streets. Evaluate crossings across all candidate routes. Ordinary
+  street speed/lane thresholds are not yet chosen; missing values are unknown.
+  Separate legal/access eligibility from our recommendation criteria. Neither
+  infrastructure nor explicit permission alone establishes low stress.
+- Explicit OSM bicycle permission (such as bicycle=yes or designated) supports
+  bicycle eligibility, subject to the sidewalk rule below and other applicable
+  restrictions. This does not yet implement travel-direction or turn rules.
+- A verified match to an existing Tucson/PAG bicycle route or facility also
+  supports eligibility. Mere inclusion in the bicycle-stress dataset, a nearby
+  facility, or a planned facility does not establish a match or permission.
+- Tom explicitly chose to let a verified existing agency bicycle-route match
+  override OSM bicycle=no or bicycle=dismount. Retain the original tags and record the conflict,
+  supporting agency record, and override reason for inspection. This override
+  applies to that bicycle tag and does not blanket-override other restrictions.
+- Sidewalks are excluded unless identified as shared-use paths, including the
+  relevant downtown facilities. Explicit bicycle=yes alone does not override
+  this sidewalk requirement. Match the actual facility, not an adjacent road.
+- Preserve the source, reason, and confidence for each agency match. Matching
+  candidates and a source-documented inventory are implemented on
+  bicycle-access-rules. Riding eligibility and ranking remain future work.
+- Local commute drafts now inspect genuine shared OSM nodes and agency bikeway
+  geometry. They are undirected physical traces, not recommended directions.
+  Private scenarios and output remain in ~/.cache/tucson-bikes, outside Git.
+- Use NAME_BKWY as a source grouping label across street changes, retaining
+  individual OBJECTIDs. It is not a documented persistent route identifier.
+  Treat Avenue Bikeway record 5375 follows La Madera Drive, East Plaza Drive,
+  and Florence Drive while the agency STREET label remains N TREAT AV.
+  Name disagreement alone must not discard a close, aligned geometry match.
+  Sidewalks cannot inherit adjacent roadway status through proximity.
+- The draft Fort Lowell connection uses OSM ways 1222331041, 1443949517,
+  and 1443949516, with PAG crossing record 7 identifying BikeHawk. Preserve
+  the distinction between the user-reported shared path and OSM's residential
+  classification of the separate bicycle=yes connection.
+- Rider correction for the campus example: stay on the East University
+  connection across Bear Down Bike Path and continue around Old Main rather
+  than taking the earlier left. The local draft now follows that connection.
+  OSM way 32967558 has bicycle=dismount; retain it as source disagreement,
+  not an automatic exclusion if a confirmed existing bicycle facility supports
+  the segment. Rider observations remain distinct from agency source evidence.
+
+### Generalizing route eligibility and preference
+
+- Build shared facility matching and eligibility decisions for the network;
+  commute checkpoints are inspection examples, not map-wide routing rules.
+- Read existing facility designations from preview_pag_bikeways.facility_type
+  (raw Display), facility_description (raw BIKERTE_DS), and bikeway_name
+  (raw NAME_BKWY). Preserve source record IDs and dates. Bicycle-stress scores
+  and federal road classes are separate attributes, not facility permission.
+- Group named bikeways under stable internal IDs with reviewed source-name
+  aliases. Match physical geometry and connected nodes across street-name
+  changes and separate crossing/path links; street-name equality is supporting
+  evidence, not a requirement. Do not infer sidewalk status from nearby roads.
+- A confirmed existing bicycle facility is affirmative eligibility evidence
+  ahead of conflicting OSM bicycle=no/dismount. Store the conflict and decision
+  reason separately from original tags. Sidewalks still require shared-use-path
+  evidence. Other closures, access, direction, and turn rules remain separate.
+- Eligibility admits candidates. Route preference then considers facility
+  quality/continuity, speed and lanes on ordinary streets, crossing difficulty,
+  distance, and detour tolerance. Designated routes are preferred candidates,
+  not automatically the best complete journey irrespective of crossings.
+- Turn rider feedback into saved acceptance cases: Treat continues through
+  Christmas/La Madera street changes; Fort Lowell uses the separate connection
+  and BikeHawk; campus continues across Bear Down toward Old Main; Park/Lester
+  is an alternative to the problematic Blacklidge/Euclid crossing. Confirm
+  route rankings with Tom before using them as expected routing outcomes.
+- A supplemental relation importer now preserves 33 relevant OSM bicycle/MTB
+  relations with full ordered membership, parent identities, source versions,
+  and explicit accounting of members unavailable in study-area geometry.
+
+### Documented inventory checkpoint, November 22
+
+- Run `.venv/bin/python prepare_bikeway_inventory.py` against the existing local
+  OSM network to refresh relation metadata and the private catalog in one command.
+- The inventory represents all 6,394 imported agency sections within the study
+  area and 7,105 OSM sections with bicycle evidence. It includes 126 named
+  bikeways, with stable reviewed identities spanning street-name changes.
+- The initial audit has 1,183 agency sections without accepted OSM geometry
+  candidates, 14 bicycle-tag conflicts, and 59 named-route continuity reviews.
+  These are source/matching reviews, not counts of missing or unsafe facilities.
+- `/routes/` provides named-bikeway search, source controls, raw-attribute and
+  provenance popups, review markers, and an audit JSON download. Commute drafts
+  remain separate, collapsed, and off by default. No route engine was added.
+- Source changes and alias/review configuration changes mark the derived
+  inventory stale. Catalog replacements are transactional; raw sources remain.
+- See docs/BIKEWAY_INVENTORY.md for source definitions, thresholds, limitations,
+  reproducible commands, SQL inspection, and validation. Source accounting is
+  verified; real-world completeness still needs field and user review.
+
 ## Current checkpoint
 
-- `bike-route-data` is saved on GitHub through `1a26ba7`.
+- `bike-route-data` is saved on GitHub through merge `6af7d2e`. The documented
+  inventory and preceding commute inspection work are local and uncommitted on
+  `bicycle-access-rules`.
 - The local infrastructure map includes bikeways, crossings, and TuGo stations.
 - `tucson_bikes_local` contains 80,300 newly imported roadway-context records.
 - The roadway importer, private preview views, setup script, and future daily
