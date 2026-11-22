@@ -1,6 +1,6 @@
 # Tucson Bikes foundation plan
 
-Updated November 18, 2026.
+Updated November 22, 2026.
 
 ## Purpose and decisions
 
@@ -13,6 +13,32 @@ The production domain is `bikes.thomaspconran.com`. The beta domain is
 
 Tom approved the umbrella name **Tucson Bikes**, technical slug `tucson-bikes`,
 and SQL prefix `tucson_bikes`. Apply resource renames as individual learning steps.
+
+## Routing data preparation decisions
+
+- V1 routing coverage targets the Tucson city boundary plus a 3-mile buffer.
+  Keep the import boundary configurable for later expansion to Pima County.
+  Evaluate an Arizona OpenStreetMap extract for the base network and preserve
+  connectivity around the extraction boundary. Existing agency-layer coverage
+  remains unverified. Network ingestion and routing are not yet implemented.
+- Calculate bicycle stress using our own versioned rules and matrix. Preserve
+  PAG combined and left/right scores for comparison. Federal functional road
+  classification describes road role and is distinct from a bicycle stress score.
+- Local audit found 64,106 PAG bicycle-stress segments. Of these, 2,882 have
+  zero FINT/TINT IDs, zero speed and lanes, blank direction, and missing street
+  names: 2,834 Shared-Use Path, 24 Bike Boulevard, and 24 Bike Lane records.
+  These endpoint IDs cannot establish connectivity. Geometry remains available.
+- The remaining 61,224 segments have nonzero endpoint IDs and populated road
+  IDs, but physical connectivity and travel-direction semantics remain unverified.
+- Twelve records on W Tangerine Rd and W Twin Peaks Rd have combined stress 1
+  and left/right stress 4. Preserve these values and flag the difference.
+- Ask Tucson GIS for the authoritative shared-use-path network, endpoint field
+  definitions, documented zero-value semantics, connection and grade-separation
+  data, bicycle access/direction restrictions, countywide coverage, and refresh
+  metadata. The inspected source is PAG's Level_of_Traffic_Stress MapServer,
+  layer 7, BLTS 1 (Lowest Stress), downloaded November 18, 2026.
+  Source: https://maps.pagregion.com/server/rest/services/RATP/Level_of_Traffic_Stress/MapServer/7
+  Network extract candidate: https://download.geofabrik.de/north-america/us/arizona.html
 
 ## Current checkpoint
 
