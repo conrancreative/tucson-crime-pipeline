@@ -1,7 +1,7 @@
-// Local playground. One Leaflet layer per facility type keeps filtering simple.
+// Standalone infrastructure map. One layer per facility type keeps filtering simple.
 (() => {
-  if (!["localhost", "127.0.0.1", "::1"].includes(location.hostname)) return;
-  document.querySelector('[data-view="routes"]').hidden = false;
+  const view = document.getElementById("view-routes");
+  if (!view) return;
 
   const colors = {
     "Bike Lane": "#2563eb",
@@ -16,9 +16,13 @@
   const filters = document.getElementById("route-filters");
   const crossingToggle = document.getElementById("route-crossings");
   const stationToggle = document.getElementById("route-stations");
+  const wardToggle = document.getElementById("route-wards");
   const reload = document.getElementById("routes-reload");
   const groups = new Map();
-  let routeMap;
+  const routeMap = createTucsonMap("routes-map", {
+    preferCanvas: true,
+    attribution: " · Infrastructure: PAG, Pima County and City of Tucson · Stations: TuGo"
+  });
   let crossingLayer;
   let wardLayer;
   let stationLayer;
@@ -52,15 +56,15 @@
     summary.textContent = "Loading local bike data…";
     const previous = new Map([...groups].map(([type, group]) => [type, group.checkbox.checked]));
     try {
-      const response = await fetch("/api/bike-routes", { cache: "no-store" });
-      if (!response.ok) throw new Error("Could not read the local database.");
+      const response = await fetch(view.dataset.endpoint || "/api/bike-routes", { cache: "no-store" });
+      if (!response.ok) throw new Error("Could not load bike infrastructure data.");
       const data = await response.json();
       if (!data.routes?.features?.length) throw new Error("No bikeways found. Import the PAG data locally, then reload.");
 
       groups.forEach(group => routeMap.removeLayer(group.layer));
       if (crossingLayer) routeMap.removeLayer(crossingLayer);
       if (wardLayer) routeMap.removeLayer(wardLayer);
-      wardLayer = drawWards(routeMap, data.wards);
+      wardLayer = drawWards(routeMap, data.wards, undefined, wardToggle.checked);
       if (stationLayer) routeMap.removeLayer(stationLayer);
       groups.clear();
       filters.replaceChildren();
@@ -155,37 +159,25 @@
         ? `Local snapshot · ${new Date(data.snapshot_at).toLocaleDateString()}` : "";
       updateSummary();
     } catch (error) {
-      summary.textContent = `${error.message} Start the preview with .venv/bin/python preview_server.py, then reload.`;
+      summary.textContent = `${error.message} Check the data service and try Reload local data.`;
     } finally {
       loading = false;
       reload.disabled = false;
     }
   }
 
-  document.addEventListener("viewchange", event => {
-    if (event.detail !== "routes") return;
-    if (!routeMap) {
-      routeMap = L.map("routes-map", { preferCanvas: true }).setView([32.221, -110.955], 12);
-      routeMap.createPane("wards");
-      routeMap.getPane("wards").style.zIndex = 350;
-
-      routeMap.createPane("wardlabels");
-      routeMap.getPane("wardlabels").style.zIndex = 360;
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · Bikeways and crossings: PAG'
-      }).addTo(routeMap);
-      loadData();
-    }
-    setTimeout(() => routeMap.invalidateSize(), 0);
-  });
   document.getElementById("routes-all").onclick = () => {
     groups.forEach(group => setVisible(group, true));
-    if (routeMap) updateSummary();
+    updateSummary();
   };
   document.getElementById("routes-none").onclick = () => {
     groups.forEach(group => setVisible(group, false));
-    if (routeMap) updateSummary();
+    updateSummary();
+  };
+  wardToggle.onchange = () => {
+    if (!wardLayer) return;
+    if (wardToggle.checked) wardLayer.addTo(routeMap);
+    else routeMap.removeLayer(wardLayer);
   };
   crossingToggle.onchange = () => {
     if (!crossingLayer) return;
@@ -202,7 +194,8 @@
   document.getElementById("routes-fit").onclick = () => {
     if (networkBounds?.isValid()) routeMap.fitBounds(networkBounds, { padding: [20, 20] });
   };
-  reload.onclick = () => { if (routeMap) loadData(); };
-  window.addEventListener("resize", () => routeMap?.invalidateSize());
-  document.querySelector(".route-panel details").addEventListener("toggle", () => routeMap?.invalidateSize());
+  reload.onclick = loadData;
+  window.addEventListener("resize", () => routeMap.invalidateSize());
+  document.querySelector(".route-panel details").addEventListener("toggle", () => routeMap.invalidateSize());
+  loadData();
 })();
